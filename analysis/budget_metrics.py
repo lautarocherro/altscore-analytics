@@ -257,8 +257,8 @@ def main():
             cols_to_show = ["dealname", col_name]
             if stage_name == "Qualified Lead":
                 cols_to_show.append("amount")
-            elif "hubspot_owner_id" in df_deals.columns:
-                cols_to_show.append("hubspot_owner_id")
+            elif "hubspot_owner_name" in df_deals.columns:
+                cols_to_show.append("hubspot_owner_name")
                 
             show_cols = [c for c in cols_to_show if c in df_stage.columns]
             
