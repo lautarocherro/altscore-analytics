@@ -160,7 +160,14 @@ def main():
         
     df_comms = df_comms_raw[mask_comms].copy()
 
-    mask_deals = pd.Series(True, index=df_deals_raw.index)
+    # Apply Filters to Deals (using positive response date as the base "entry" date for funnel metrics for now)
+    # The V2 dashboard shows stages, we'll filter on deals that *entered positive response* in this window
+    if 'date_entered_positive_response' in df_deals_raw.columns:
+        mask_deals = (df_deals_raw['date_entered_positive_response'] >= start_date) & \
+                     (df_deals_raw['date_entered_positive_response'] <= end_date)
+    else:
+        # Fallback if there's no date_entered_positive_response in deals
+        mask_deals = pd.Series(True, index=df_deals_raw.index)
                  
     if selected_dealtype and 'dealtype' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['dealtype'].isin(selected_dealtype)
@@ -178,8 +185,13 @@ def main():
     contacts_per_company = contacts_reached / companies_contacted if companies_contacted > 0 else 0
     
     # Funnel Metrics (from Deals)
+    def in_range(col):
+        if col not in df_deals.columns:
+            return pd.Series(False, index=df_deals.index)
+        return df_deals[col].notna() & (df_deals[col] >= start_date) & (df_deals[col] <= end_date)
+
     def count_stage(col):
-        return df_deals[col].notna().sum() if col in df_deals.columns else 0
+        return in_range(col).sum()
 
     pos_res_count = count_stage('date_entered_positive_response')
     deals_per_company = (pos_res_count / companies_contacted * 100) if companies_contacted > 0 else 0
@@ -194,13 +206,8 @@ def main():
     closed_won_count = count_stage('date_entered_closed_won')
     
     # Calculate amount for Qualified Leads (Demo stage)
-    if 'date_entered_demo' in df_deals.columns:
-        df_qual = df_deals[df_deals['date_entered_demo'].notna()]
-        qual_value = df_qual['amount'].sum() if 'amount' in df_qual.columns else 0
-    else:
-        df_qual = pd.DataFrame()
-        qual_value = 0
-        
+    df_qual = df_deals[in_range('date_entered_demo')].copy()
+    qual_value = df_qual['amount'].sum() if 'amount' in df_qual.columns else 0
     avg_qual_value = qual_value / qual_leads_count if qual_leads_count > 0 else 0
 
     st.subheader("🎯 Reach & Early Funnel")
@@ -245,24 +252,27 @@ def main():
     if "hubspot_owner_id" in df_deals.columns: cols_to_show.append("hubspot_owner_id")
     
     with tab1:
-        if 'date_entered_positive_response' in df_deals.columns:
-            df_pos = df_deals[df_deals['date_entered_positive_response'].notna()].copy()
-            show_cols = [c for c in cols_to_show if c in df_pos.columns]
+        df_pos = df_deals[in_range('date_entered_positive_response')].copy()
+        show_cols = [c for c in cols_to_show if c in df_pos.columns]
+        if not df_pos.empty:
             st.dataframe(df_pos[show_cols].sort_values("date_entered_positive_response", ascending=False), use_container_width=True, hide_index=True)
         else:
-            st.info("No positive response date found in Deals table.")
+            st.info("No deals entered Positive Response in this timeframe.")
         
     with tab2:
-        if 'date_entered_discovery_call' in df_deals.columns:
-            df_disc = df_deals[df_deals['date_entered_discovery_call'].notna()].copy()
-            show_cols = [c for c in ["dealname", "date_entered_discovery_call", "hubspot_owner_id"] if c in df_disc.columns]
+        df_disc = df_deals[in_range('date_entered_discovery_call')].copy()
+        show_cols = [c for c in ["dealname", "date_entered_discovery_call", "hubspot_owner_id"] if c in df_disc.columns]
+        if not df_disc.empty:
             st.dataframe(df_disc[show_cols].sort_values("date_entered_discovery_call", ascending=False), use_container_width=True, hide_index=True)
         else:
-            st.info("No discovery call date found in Deals table.")
+            st.info("No deals entered Discovery Call in this timeframe.")
         
     with tab3:
         show_cols = [c for c in ["dealname", "date_entered_demo", "amount"] if c in df_qual.columns]
-        st.dataframe(df_qual[show_cols].sort_values("amount", ascending=False), use_container_width=True, hide_index=True)
+        if not df_qual.empty:
+            st.dataframe(df_qual[show_cols].sort_values("amount", ascending=False), use_container_width=True, hide_index=True)
+        else:
+            st.info("No deals reached Qualified Lead (Demo) in this timeframe.")
 
     # For debugging the schema initially on Cloud
     with st.expander("Debug: DataFrame Schemas"):
