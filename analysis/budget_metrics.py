@@ -1,6 +1,6 @@
 """
 AltScore — Budget Metrics Dashboard
-Recreation of Looker Studio Budget Metrics V2
+Recreation of Looker Studio Budget Metrics
 Top-of-funnel reach (contacts/companies) + Pipeline funnel conversions
 """
 
@@ -93,7 +93,7 @@ def main():
     except st.errors.StreamlitAPIException:
         pass
 
-    st.markdown("## 📈 Budget Metrics V2")
+    st.markdown("## 📈 Budget Metrics")
     st.caption("Top-of-funnel reach & pipeline conversions")
 
     # Load raw data
@@ -132,30 +132,46 @@ def main():
     won_company_opts = [True, False]
     selected_won_company = st.sidebar.selectbox("Won Company", ["All", "True", "False"], index=0)
     
-    dealtype_opts = sorted(df_deals_raw["dealtype"].dropna().unique().tolist())
-    selected_dealtype = st.sidebar.multiselect("Dealtype", dealtype_opts, default=["New Business"] if "New Business" in dealtype_opts else dealtype_opts)
+    if "dealtype" in df_deals_raw.columns:
+        dealtype_opts = sorted(df_deals_raw["dealtype"].dropna().unique().tolist())
+        selected_dealtype = st.sidebar.multiselect("Dealtype", dealtype_opts, default=["New Business"] if "New Business" in dealtype_opts else dealtype_opts)
+    else:
+        selected_dealtype = []
     
-    icp_opts = sorted(df_deals_raw["hs_ideal_customer_profile"].dropna().unique().tolist())
-    selected_icp = st.sidebar.multiselect("Ideal Customer Tier", icp_opts, default=icp_opts)
+    if "ideal_customer_profile_tier" in df_comms_raw.columns:
+        icp_opts = sorted(df_comms_raw["ideal_customer_profile_tier"].dropna().unique().tolist())
+    elif "hs_ideal_customer_profile" in df_deals_raw.columns:
+        icp_opts = sorted(df_deals_raw["hs_ideal_customer_profile"].dropna().unique().tolist())
+    else:
+        icp_opts = []
+    
+    if icp_opts:
+        selected_icp = st.sidebar.multiselect("Ideal Customer Tier", icp_opts, default=icp_opts)
+    else:
+        selected_icp = []
 
     # Apply Filters to Comms
     mask_comms = (df_comms_raw['comm_date'] >= start_date) & (df_comms_raw['comm_date'] <= end_date)
-    if selected_won_company != "All":
+    if selected_won_company != "All" and 'is_company_won' in df_comms_raw.columns:
         b_val = selected_won_company == "True"
         mask_comms &= (df_comms_raw['is_company_won'] == b_val)
-    if selected_icp:
+    if selected_icp and 'ideal_customer_profile_tier' in df_comms_raw.columns:
         mask_comms &= df_comms_raw['ideal_customer_profile_tier'].isin(selected_icp)
         
     df_comms = df_comms_raw[mask_comms].copy()
 
     # Apply Filters to Deals (using positive response date as the base "entry" date for funnel metrics for now)
     # The V2 dashboard shows stages, we'll filter on deals that *entered positive response* in this window
-    mask_deals = (df_deals_raw['date_entered_positive_response'] >= start_date) & \
-                 (df_deals_raw['date_entered_positive_response'] <= end_date)
+    if 'date_entered_positive_response' in df_deals_raw.columns:
+        mask_deals = (df_deals_raw['date_entered_positive_response'] >= start_date) & \
+                     (df_deals_raw['date_entered_positive_response'] <= end_date)
+    else:
+        # Fallback if there's no date_entered_positive_response in deals
+        mask_deals = pd.Series(True, index=df_deals_raw.index)
                  
-    if selected_dealtype:
+    if selected_dealtype and 'dealtype' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['dealtype'].isin(selected_dealtype)
-    if selected_icp:
+    if selected_icp and 'hs_ideal_customer_profile' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['hs_ideal_customer_profile'].isin(selected_icp)
         
     df_deals = df_deals_raw[mask_deals].copy()
@@ -169,10 +185,17 @@ def main():
     contacts_per_company = contacts_reached / companies_contacted if companies_contacted > 0 else 0
     
     # Funnel Metrics (from Deals)
-    pos_res_count = df_deals['date_entered_positive_response'].notna().sum()
+    if 'date_entered_positive_response' in df_deals.columns:
+        pos_res_count = df_deals['date_entered_positive_response'].notna().sum()
+    else:
+        pos_res_count = 0
+        
     deals_per_company = (pos_res_count / companies_contacted * 100) if companies_contacted > 0 else 0
     
-    disc_call_count = df_deals['date_entered_discovery_call'].notna().sum()
+    if 'date_entered_discovery_call' in df_deals.columns:
+        disc_call_count = df_deals['date_entered_discovery_call'].notna().sum()
+    else:
+        disc_call_count = 0
     
     # Qualified Leads = Entered Demo (Stage C) or beyond
     qual_leads_mask = df_deals['numeric_final_dealstage'] >= 3 if 'numeric_final_dealstage' in df_deals.columns else df_deals['date_entered_demo'].notna()
@@ -217,14 +240,20 @@ def main():
     if "hubspot_owner_id" in df_deals.columns: cols_to_show.append("hubspot_owner_id")
     
     with tab1:
-        df_pos = df_deals[df_deals['date_entered_positive_response'].notna()].copy()
-        show_cols = [c for c in cols_to_show if c in df_pos.columns]
-        st.dataframe(df_pos[show_cols].sort_values("date_entered_positive_response", ascending=False), use_container_width=True, hide_index=True)
+        if 'date_entered_positive_response' in df_deals.columns:
+            df_pos = df_deals[df_deals['date_entered_positive_response'].notna()].copy()
+            show_cols = [c for c in cols_to_show if c in df_pos.columns]
+            st.dataframe(df_pos[show_cols].sort_values("date_entered_positive_response", ascending=False), use_container_width=True, hide_index=True)
+        else:
+            st.info("No positive response date found in Deals table.")
         
     with tab2:
-        df_disc = df_deals[df_deals['date_entered_discovery_call'].notna()].copy()
-        show_cols = [c for c in ["dealname", "date_entered_discovery_call", "hubspot_owner_id"] if c in df_disc.columns]
-        st.dataframe(df_disc[show_cols].sort_values("date_entered_discovery_call", ascending=False), use_container_width=True, hide_index=True)
+        if 'date_entered_discovery_call' in df_deals.columns:
+            df_disc = df_deals[df_deals['date_entered_discovery_call'].notna()].copy()
+            show_cols = [c for c in ["dealname", "date_entered_discovery_call", "hubspot_owner_id"] if c in df_disc.columns]
+            st.dataframe(df_disc[show_cols].sort_values("date_entered_discovery_call", ascending=False), use_container_width=True, hide_index=True)
+        else:
+            st.info("No discovery call date found in Deals table.")
         
     with tab3:
         show_cols = [c for c in ["dealname", "date_entered_demo", "amount"] if c in df_qual.columns]
