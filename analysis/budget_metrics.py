@@ -100,9 +100,7 @@ def main():
     df_comms_raw = load_comms_data()
     df_deals_raw = load_deals_data()
 
-    # We need to find the actual comm date column. Let's fallback to 'createdate' or similar if 'timestamp' missing.
-    if 'hs_timestamp' in df_comms_raw.columns:
-        df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw['hs_timestamp']).dt.date
+    df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw['hs_timestamp']).dt.date
 
     # ── Filters Sidebar ───────────────────────────────────────────────────
     st.sidebar.header("🎛  Filters")
@@ -168,8 +166,8 @@ def main():
     st.markdown("---")
     
     # Reach Metrics (from Comms)
-    contacts_reached = df_comms['contact_id'].nunique() if 'contact_id' in df_comms.columns else len(df_comms)
-    companies_contacted = df_comms['company_id'].nunique() if 'company_id' in df_comms.columns else 0
+    contacts_reached = df_comms['contact_id'].nunique()
+    companies_contacted = df_comms['company_id'].nunique()
     contacts_per_company = contacts_reached / companies_contacted if companies_contacted > 0 else 0
     
     # Funnel Metrics (from Deals)
