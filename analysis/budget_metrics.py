@@ -160,14 +160,7 @@ def main():
         
     df_comms = df_comms_raw[mask_comms].copy()
 
-    # Apply Filters to Deals (using positive response date as the base "entry" date for funnel metrics for now)
-    # The V2 dashboard shows stages, we'll filter on deals that *entered positive response* in this window
-    if 'date_entered_positive_response' in df_deals_raw.columns:
-        mask_deals = (df_deals_raw['date_entered_positive_response'] >= start_date) & \
-                     (df_deals_raw['date_entered_positive_response'] <= end_date)
-    else:
-        # Fallback if there's no date_entered_positive_response in deals
-        mask_deals = pd.Series(True, index=df_deals_raw.index)
+    mask_deals = pd.Series(True, index=df_deals_raw.index)
                  
     if selected_dealtype and 'dealtype' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['dealtype'].isin(selected_dealtype)
