@@ -1,6 +1,6 @@
 """
 AltScore Analytics — Multipage Streamlit Application
-Entrypoint with password authentication.
+Entrypoint with password authentication and programmatic page routing.
 """
 
 import streamlit as st
@@ -39,37 +39,23 @@ def check_password() -> bool:
 if not check_password():
     st.stop()
 
-# ── Landing page ──────────────────────────────────────────────────────────────
-st.markdown("## 📊 AltScore Analytics")
-st.caption("Internal dashboards — select a page from the sidebar")
+# ── Build page list (only enabled pages show in sidebar) ──────────────────────
+pages = [
+    st.Page("pages/home.py", title="Home", icon="📊", default=True),
+]
 
-col1, col2, col3 = st.columns(3)
+if is_page_enabled("deal_amounts"):
+    pages.append(st.Page("pages/1_💼_Deal_Amounts.py", title="Deal Amounts", icon="💼"))
+if is_page_enabled("stage_funnel"):
+    pages.append(st.Page("pages/2_🔀_Stage_Funnel.py", title="Stage Funnel", icon="🔀"))
+if is_page_enabled("company_contacts"):
+    pages.append(st.Page("pages/3_🏢_Company_Contacts.py", title="Company Contacts", icon="🏢"))
 
-with col1:
-    if is_page_enabled("deal_amounts"):
-        st.markdown("### 💼 Deal Amounts")
-        st.write("Distribution analysis & High/Low Ticket clustering")
-        st.page_link("pages/1_💼_Deal_Amounts.py", label="Open →", icon="💼")
-
-with col2:
-    if is_page_enabled("stage_funnel"):
-        st.markdown("### 🔀 Stage Funnel")
-        st.write("Conversion rates & time between pipeline stages")
-        st.page_link("pages/2_🔀_Stage_Funnel.py", label="Open →", icon="🔀")
-
-with col3:
-    if is_page_enabled("company_contacts"):
-        st.markdown("### 🏢 Company Contacts")
-        st.write("Contact coverage, reachability & ICP breakdown")
-        st.page_link("pages/3_🏢_Company_Contacts.py", label="Open →", icon="🏢")
+pg = st.navigation(pages)
 
 # Sidebar sign out
 if st.sidebar.button("🚪 Sign out"):
     st.session_state["authenticated"] = False
     st.rerun()
 
-st.markdown(
-    "<div style='text-align:center;color:#555;font-size:.8rem;margin-top:3rem;'>"
-    "Data: HubSpot · BigQuery · AltScore</div>",
-    unsafe_allow_html=True,
-)
+pg.run()
