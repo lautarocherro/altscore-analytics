@@ -18,7 +18,7 @@ if is_page_enabled("company_contacts"):
     enabled.append(("🏢", "Company Contacts", "Contact coverage, reachability & ICP breakdown",
                      "pages/3_🏢_Company_Contacts.py"))
 if is_page_enabled("budget_metrics"):
-    enabled.append(("📈", "Budget Metrics", "Top-of-funnel reach & deeper funnel conversions",
+    enabled.append(("📈", "Budget Metrics - Playground", "Top-of-funnel reach & deeper funnel conversions",
                      "pages/4_📈_Budget_Metrics.py"))
 
 if not enabled:
