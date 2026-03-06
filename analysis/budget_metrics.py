@@ -151,6 +151,12 @@ def main():
     # Product Filter (maps to Deal 'house' column)
     if "house" in df_deals_raw.columns:
         product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
+    elif "house" in df_comms_raw.columns:
+        product_opts = sorted(df_comms_raw["house"].dropna().unique().tolist())
+    else:
+        product_opts = []
+        
+    if product_opts:
         selected_product = st.sidebar.multiselect("Product", product_opts, default=product_opts)
     else:
         selected_product = []
@@ -173,8 +179,9 @@ def main():
         # Re-apply the same fallback to Deals column
         df_deals_raw["hs_ideal_customer_profile"] = df_deals_raw["hs_ideal_customer_profile"].fillna("Null_Value")
         mask_deals &= df_deals_raw['hs_ideal_customer_profile'].isin(selected_icp)
-    if selected_product and 'house' in df_deals_raw.columns:
-        mask_deals &= df_deals_raw['house'].isin(selected_product)
+    if selected_product:
+        if 'house' in df_deals_raw.columns:
+            mask_deals &= df_deals_raw['house'].isin(selected_product)
         
     df_deals = df_deals_raw[mask_deals].copy()
 
