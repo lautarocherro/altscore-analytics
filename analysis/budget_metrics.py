@@ -147,6 +147,13 @@ def main():
             selected_icp = []
     else:
         selected_icp = []
+        
+    # Product Filter (maps to Deal 'house' column)
+    if "house" in df_deals_raw.columns:
+        product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
+        selected_product = st.sidebar.multiselect("Product", product_opts, default=product_opts)
+    else:
+        selected_product = []
 
     # Apply Filters to Comms
     mask_comms = (df_comms_raw['hs_timestamp'] >= start_date) & (df_comms_raw['hs_timestamp'] <= end_date)
@@ -166,6 +173,8 @@ def main():
         # Re-apply the same fallback to Deals column
         df_deals_raw["hs_ideal_customer_profile"] = df_deals_raw["hs_ideal_customer_profile"].fillna("Null_Value")
         mask_deals &= df_deals_raw['hs_ideal_customer_profile'].isin(selected_icp)
+    if selected_product and 'house' in df_deals_raw.columns:
+        mask_deals &= df_deals_raw['house'].isin(selected_product)
         
     df_deals = df_deals_raw[mask_deals].copy()
 
