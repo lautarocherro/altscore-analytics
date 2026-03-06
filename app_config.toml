@@ -5,3 +5,4 @@
 deal_amounts      = false
 stage_funnel      = true
 company_contacts  = true
+budget_metrics    = true

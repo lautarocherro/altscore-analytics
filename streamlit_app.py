@@ -50,6 +50,8 @@ if is_page_enabled("stage_funnel"):
     pages.append(st.Page("pages/2_🔀_Stage_Funnel.py", title="Stage Funnel", icon="🔀"))
 if is_page_enabled("company_contacts"):
     pages.append(st.Page("pages/3_🏢_Company_Contacts.py", title="Company Contacts", icon="🏢"))
+if is_page_enabled("budget_metrics"):
+    pages.append(st.Page("pages/4_📈_Budget_Metrics.py", title="Budget Metrics", icon="📈"))
 
 pg = st.navigation(pages)
 
