@@ -115,7 +115,7 @@ def main():
     # Dropdowns for deals 
     # Use deals raw to populate options
     won_company_opts = [True, False]
-    selected_won_company = st.sidebar.selectbox("Won Company", ["All", "True", "False"], index=0)
+    selected_won_company = st.sidebar.selectbox("Won Company", ["All", "True", "False"], index=2) # 2 corresponds to "False"
     
     if "dealtype" in df_deals_raw.columns:
         dealtype_opts = sorted(df_deals_raw["dealtype"].dropna().unique().tolist())
