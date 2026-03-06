@@ -140,7 +140,6 @@ def main():
             selected_icp = st.sidebar.multiselect(
                 "Ideal Customer Tier", 
                 raw_icp_opts, 
-                default=raw_icp_opts,
                 format_func=format_icp_name
             )
         else:
@@ -156,9 +155,26 @@ def main():
     # Channel Filter (maps to Deal 'channel' column)
     if "channel" in df_deals_raw.columns:
         channel_opts = sorted(df_deals_raw["channel"].dropna().unique().tolist())
-        selected_channel = st.sidebar.multiselect("Channel", channel_opts, default=channel_opts)
+        selected_channel = st.sidebar.multiselect("Channel", channel_opts)
     else:
         selected_channel = []
+        
+    # SDR Filter (maps to Deal 'sdr' column)
+    if "sdr" in df_deals_raw.columns:
+        sdr_opts = sorted(df_deals_raw["sdr"].dropna().unique().tolist())
+        selected_sdr = st.sidebar.multiselect("SDR", sdr_opts)
+    elif "sdr" in df_comms_raw.columns:
+        sdr_opts = sorted(df_comms_raw["sdr"].dropna().unique().tolist())
+        selected_sdr = st.sidebar.multiselect("SDR", sdr_opts)
+    else:
+        selected_sdr = []
+        
+    # Archetype Filter (maps to Comms 'archetype_vertical' column)
+    if "archetype_vertical" in df_comms_raw.columns:
+        arch_opts = sorted(df_comms_raw["archetype_vertical"].dropna().unique().tolist())
+        selected_archetype = st.sidebar.multiselect("Archetype Vertical", arch_opts)
+    else:
+        selected_archetype = []
 
     # Apply Filters to Comms
     mask_comms = (df_comms_raw['hs_timestamp'] >= start_date) & (df_comms_raw['hs_timestamp'] <= end_date)
@@ -167,6 +183,10 @@ def main():
         mask_comms &= (df_comms_raw['is_company_won'] == b_val)
     if selected_icp and 'ideal_customer_profile_tier' in df_comms_raw.columns:
         mask_comms &= df_comms_raw['ideal_customer_profile_tier'].isin(selected_icp)
+    if selected_sdr and 'sdr' in df_comms_raw.columns:
+        mask_comms &= df_comms_raw['sdr'].isin(selected_sdr)
+    if selected_archetype and 'archetype_vertical' in df_comms_raw.columns:
+        mask_comms &= df_comms_raw['archetype_vertical'].isin(selected_archetype)
         
     df_comms = df_comms_raw[mask_comms].copy()
 
@@ -183,6 +203,12 @@ def main():
             mask_deals &= df_deals_raw['house'].isin(selected_product)
     if selected_channel and 'channel' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['channel'].isin(selected_channel)
+    if selected_sdr and 'sdr' in df_deals_raw.columns:
+        mask_deals &= df_deals_raw['sdr'].isin(selected_sdr)
+    if selected_archetype and 'archetype_vertical_account' in df_deals_raw.columns:
+        mask_deals &= df_deals_raw['archetype_vertical_account'].isin(selected_archetype)
+    elif selected_archetype and 'archetype_vertical' in df_deals_raw.columns:
+        mask_deals &= df_deals_raw['archetype_vertical'].isin(selected_archetype)
         
     df_deals = df_deals_raw[mask_deals].copy()
 
