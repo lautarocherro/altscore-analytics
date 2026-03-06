@@ -276,6 +276,12 @@ def main():
                 }
                 df_display = df_display.rename(columns=rename_dict)
                 
+                # Format Qualified dollars to look pretty like $6.000
+                if "Qualified dollars" in df_display.columns:
+                    df_display["Qualified dollars"] = df_display["Qualified dollars"].apply(
+                        lambda x: f"${x:,.0f}".replace(",", ".") if pd.notnull(x) else ""
+                    )
+                
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
             else:
                 st.info(f"No deals reached {stage_name} in this timeframe.")
