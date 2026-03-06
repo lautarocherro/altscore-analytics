@@ -249,6 +249,8 @@ def main():
         ("date_entered_closed_won", "Closed Won")
     ]
     
+    late_stages = ["Proposal", "Negotiation", "Legal Docs", "Delivery", "Closed Won"]
+    
     for tab, (col_name, stage_name) in zip(tabs, stages):
         with tab:
             df_stage = df_deals[in_range(col_name)].copy()
@@ -257,8 +259,14 @@ def main():
             cols_to_show = ["dealname", col_name]
             if stage_name == "Qualified Lead":
                 cols_to_show.append("amount")
-            elif "sdr" in df_deals.columns:
-                cols_to_show.append("sdr")
+            
+            # Use 'sdr' for early stages, but 'hubspot_owner_name' for late stages
+            if stage_name in late_stages:
+                if "hubspot_owner_name" in df_deals.columns:
+                    cols_to_show.append("hubspot_owner_name")
+            else:
+                if "sdr" in df_deals.columns:
+                    cols_to_show.append("sdr")
                 
             show_cols = [c for c in cols_to_show if c in df_stage.columns]
             
@@ -272,7 +280,8 @@ def main():
                     "dealname": "Deal name",
                     col_name: "Date entered stage",
                     "amount": "Qualified dollars",
-                    "sdr": "SDR"
+                    "sdr": "SDR",
+                    "hubspot_owner_name": "Owner"
                 }
                 df_display = df_display.rename(columns=rename_dict)
                 
@@ -285,8 +294,3 @@ def main():
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
             else:
                 st.info(f"No deals reached {stage_name} in this timeframe.")
-
-    # For debugging the schema initially on Cloud
-    with st.expander("Debug: DataFrame Schemas"):
-        st.write("Comms Columns:", df_comms_raw.columns.tolist())
-        st.write("Deals Columns:", df_deals_raw.columns.tolist())
