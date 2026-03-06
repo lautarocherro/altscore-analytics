@@ -17,7 +17,7 @@ NAVY = "#103F79"
 
 # ── Password gate ─────────────────────────────────────────────────────────────
 # Password is stored in .streamlit/secrets.toml (local) or env var (Cloud Run)
-APP_PASSWORD = st.secrets.get("APP_PASSWORD", "altscore2026")
+APP_PASSWORD = st.secrets.get("APP_PASSWORD", "Altscore2026")
 
 
 def check_password() -> bool:

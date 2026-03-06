@@ -4,6 +4,7 @@ pandas~=2.2.3
 matplotlib
 seaborn
 scikit-learn
+watchdog
 
 # Streamlit
 streamlit
