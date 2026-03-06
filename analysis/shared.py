@@ -23,7 +23,7 @@ _LOCAL_CREDS_PATH = os.path.join(
 
 @st.cache_resource(show_spinner=False)
 def _get_credentials() -> service_account.Credentials:
-    sa_json = os.environ.get("GCP_SA_JSON")
+    sa_json = os.environ.get("GCP_SA_JSON") or st.secrets.get("GCP_SA_JSON")
     if sa_json:
         info = json.loads(sa_json)
         return service_account.Credentials.from_service_account_info(
