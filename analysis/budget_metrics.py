@@ -152,6 +152,13 @@ def main():
     product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
     default_product = ["AltDecision"] if "AltDecision" in product_opts else product_opts
     selected_product = st.sidebar.multiselect("Product", product_opts, default=default_product)
+    
+    # Channel Filter (maps to Deal 'channel' column)
+    if "channel" in df_deals_raw.columns:
+        channel_opts = sorted(df_deals_raw["channel"].dropna().unique().tolist())
+        selected_channel = st.sidebar.multiselect("Channel", channel_opts, default=channel_opts)
+    else:
+        selected_channel = []
 
     # Apply Filters to Comms
     mask_comms = (df_comms_raw['hs_timestamp'] >= start_date) & (df_comms_raw['hs_timestamp'] <= end_date)
@@ -174,6 +181,8 @@ def main():
     if selected_product:
         if 'house' in df_deals_raw.columns:
             mask_deals &= df_deals_raw['house'].isin(selected_product)
+    if selected_channel and 'channel' in df_deals_raw.columns:
+        mask_deals &= df_deals_raw['channel'].isin(selected_channel)
         
     df_deals = df_deals_raw[mask_deals].copy()
 
