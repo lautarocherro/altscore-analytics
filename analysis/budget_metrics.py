@@ -257,8 +257,8 @@ def main():
             cols_to_show = ["dealname", col_name]
             if stage_name == "Qualified Lead":
                 cols_to_show.append("amount")
-            elif "hubspot_owner_name" in df_deals.columns:
-                cols_to_show.append("hubspot_owner_name")
+            elif "sdr" in df_deals.columns:
+                cols_to_show.append("sdr")
                 
             show_cols = [c for c in cols_to_show if c in df_stage.columns]
             
@@ -271,7 +271,8 @@ def main():
                 rename_dict = {
                     "dealname": "Deal name",
                     col_name: "Date entered stage",
-                    "amount": "Qualified dollars"
+                    "amount": "Qualified dollars",
+                    "sdr": "SDR"
                 }
                 df_display = df_display.rename(columns=rename_dict)
                 
