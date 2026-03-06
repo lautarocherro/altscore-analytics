@@ -52,6 +52,8 @@ if is_page_enabled("company_contacts"):
     pages.append(st.Page("pages/3_🏢_Company_Contacts.py", title="Company Contacts", icon="🏢"))
 if is_page_enabled("budget_metrics"):
     pages.append(st.Page("pages/4_📈_Budget_Metrics.py", title="Budget Metrics", icon="📈"))
+if is_page_enabled("budget_waterfall"):
+    pages.append(st.Page("pages/5_🌊_Budget_Waterfall.py", title="Budget Waterfall", icon="🌊"))
 
 pg = st.navigation(pages)
 

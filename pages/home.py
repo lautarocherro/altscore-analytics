@@ -20,6 +20,9 @@ if is_page_enabled("company_contacts"):
 if is_page_enabled("budget_metrics"):
     enabled.append(("📈", "Budget Metrics - Playground", "Top-of-funnel reach & deeper funnel conversions",
                      "pages/4_📈_Budget_Metrics.py"))
+if is_page_enabled("budget_waterfall"):
+    enabled.append(("🌊", "Budget Waterfall", "Funnel dropping & matrix time progressions",
+                     "pages/5_🌊_Budget_Waterfall.py"))
 
 if not enabled:
     st.info("No pages are currently enabled. Update `app_config.toml` to activate pages.")
