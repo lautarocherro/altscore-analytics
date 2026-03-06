@@ -149,11 +149,9 @@ def main():
         selected_icp = []
         
     # Product Filter (maps to Deal 'house' column)
-    if "house" in df_deals_raw.columns:
-        product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
-        selected_product = st.sidebar.multiselect("Product", product_opts, default=product_opts)
-    else:
-        selected_product = []
+    product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
+    selected_product = st.sidebar.multiselect("Product", product_opts, default=product_opts)
+
 
     # Apply Filters to Comms
     mask_comms = (df_comms_raw['hs_timestamp'] >= start_date) & (df_comms_raw['hs_timestamp'] <= end_date)
