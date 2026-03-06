@@ -36,7 +36,7 @@ def main():
     
     # Date Range
     today = date.today()
-    default_start = today.replace(day=1) - relativedelta(months=3) # Default to last 3 months
+    default_start = today.replace(day=1) - relativedelta(months=6) # Default to last 6 months
     
     date_range = st.sidebar.date_input(
         "Date Range",
@@ -164,6 +164,16 @@ def main():
     # Pre-calculate periods for the columns so they are ordered properly
     periods = pd.period_range(start=start_date, end=end_date, freq='M').strftime('%Y-%b').tolist()
     
+    # Identify the 'Last 3 Months' strings (excluding current month)
+    last_3_months_dates = [today.replace(day=1) - relativedelta(months=i) for i in range(1, 4)]
+    last_3_months_strs = [m.strftime('%Y-%b') for m in last_3_months_dates]
+    
+    # Identify current month
+    current_month_str = today.strftime('%Y-%b')
+    days_in_current_month = getattr(pd.Period(today.strftime('%Y-%m')), 'days_in_month', 30)
+    current_day = today.day
+    proj_multiplier = days_in_current_month / current_day if current_day > 0 else 1
+    
     # Reach row (Contacts Reached)
     # We use hs_timestamp 
     if not df_comms.empty:
@@ -173,12 +183,18 @@ def main():
         reach_counts = {}
         
     reach_row = {"Stage": "0. Contacts Reached"}
-    total_reach = 0
+    sum_last_3 = 0
     for p in periods:
         val = reach_counts.get(p, 0)
         reach_row[p] = val
-        total_reach += val
-    reach_row["Total"] = total_reach
+        if p in last_3_months_strs:
+            sum_last_3 += val
+            
+    reach_row["Last 3 Months"] = sum_last_3
+    
+    # Projected current month
+    curr_month_val = reach_counts.get(current_month_str, 0)
+    reach_row["Projected (Current)"] = int(np.round(curr_month_val * proj_multiplier))
     
     matrix["0. Contacts Reached"] = reach_row
     
@@ -186,7 +202,7 @@ def main():
     for i, (stage_name, col_name) in enumerate(stages):
         stage_label = f"{i+1}. {stage_name}"
         row = {"Stage": stage_label}
-        total_stage = 0
+        sum_last_3 = 0
         
         if col_name in df_deals.columns:
             # Filter to bounds
@@ -202,12 +218,18 @@ def main():
             for p in periods:
                 val = stage_counts.get(p, 0)
                 row[p] = val
-                total_stage += val
+                if p in last_3_months_strs:
+                    sum_last_3 += val
         else:
             for p in periods:
                 row[p] = 0
                 
-        row["Total"] = total_stage
+        row["Last 3 Months"] = sum_last_3
+        
+        # Projected current month
+        curr_month_val = stage_counts.get(current_month_str, 0) if col_name in df_deals.columns else 0
+        row["Projected (Current)"] = int(np.round(curr_month_val * proj_multiplier))
+        
         matrix[stage_label] = row
         
     df_matrix = pd.DataFrame(list(matrix.values()))
@@ -216,9 +238,9 @@ def main():
     
     st.subheader("📊 Aggregate Funnel Waterfall")
     
-    # Plotly Funnel Chart based on the 'Total' column
+    # Plotly Funnel Chart based on the 'Last 3 Months' column
     funnel_stages = df_matrix["Stage"].tolist()
-    funnel_vals = df_matrix["Total"].tolist()
+    funnel_vals = df_matrix["Last 3 Months"].tolist()
     
     fig = go.Figure(go.Funnel(
         y=funnel_stages,
