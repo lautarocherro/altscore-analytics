@@ -15,3 +15,4 @@ google-cloud-bigquery
 google-auth
 pyarrow
 db-dtypes
+plotly
