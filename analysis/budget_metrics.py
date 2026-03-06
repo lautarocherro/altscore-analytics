@@ -233,34 +233,51 @@ def main():
     st.markdown("---")
     st.subheader("📝 Deal Details")
     
-    tab1, tab2, tab3 = st.tabs(["Positive Responses", "Discovery Calls", "Qualified Leads"])
+    tabs = st.tabs([
+        "Positive Responses", "Discovery Calls", "Qualified Leads", 
+        "Proposal", "Negotiation", "Legal Docs", "Delivery", "Closed Won"
+    ])
     
-    # We want: Dealname, Date, SDR (or Owner)
-    cols_to_show = ["dealname", "date_entered_positive_response"]
-    if "hubspot_owner_id" in df_deals.columns: cols_to_show.append("hubspot_owner_id")
+    stages = [
+        ("date_entered_positive_response", "Positive Response"),
+        ("date_entered_discovery_call", "Discovery Call"),
+        ("date_entered_demo", "Qualified Lead"),
+        ("date_entered_proposal", "Proposal"),
+        ("date_entered_negotiation", "Negotiation"),
+        ("date_entered_legal_documents", "Legal Docs"),
+        ("date_entered_delivery", "Delivery"),
+        ("date_entered_closed_won", "Closed Won")
+    ]
     
-    with tab1:
-        df_pos = df_deals[in_range('date_entered_positive_response')].copy()
-        show_cols = [c for c in cols_to_show if c in df_pos.columns]
-        if not df_pos.empty:
-            st.dataframe(df_pos[show_cols].sort_values("date_entered_positive_response", ascending=False), use_container_width=True, hide_index=True)
-        else:
-            st.info("No deals entered Positive Response in this timeframe.")
-        
-    with tab2:
-        df_disc = df_deals[in_range('date_entered_discovery_call')].copy()
-        show_cols = [c for c in ["dealname", "date_entered_discovery_call", "hubspot_owner_id"] if c in df_disc.columns]
-        if not df_disc.empty:
-            st.dataframe(df_disc[show_cols].sort_values("date_entered_discovery_call", ascending=False), use_container_width=True, hide_index=True)
-        else:
-            st.info("No deals entered Discovery Call in this timeframe.")
-        
-    with tab3:
-        show_cols = [c for c in ["dealname", "date_entered_demo", "amount"] if c in df_qual.columns]
-        if not df_qual.empty:
-            st.dataframe(df_qual[show_cols].sort_values("amount", ascending=False), use_container_width=True, hide_index=True)
-        else:
-            st.info("No deals reached Qualified Lead (Demo) in this timeframe.")
+    for tab, (col_name, stage_name) in zip(tabs, stages):
+        with tab:
+            df_stage = df_deals[in_range(col_name)].copy()
+            
+            # Define columns to show
+            cols_to_show = ["dealname", col_name]
+            if stage_name == "Qualified Lead":
+                cols_to_show.append("amount")
+            elif "hubspot_owner_id" in df_deals.columns:
+                cols_to_show.append("hubspot_owner_id")
+                
+            show_cols = [c for c in cols_to_show if c in df_stage.columns]
+            
+            if not df_stage.empty:
+                # Sort exactly by the required column
+                sort_col = "amount" if stage_name == "Qualified Lead" and "amount" in df_stage.columns else col_name
+                df_display = df_stage[show_cols].sort_values(sort_col, ascending=False).copy()
+                
+                # Rename columns for display
+                rename_dict = {
+                    "dealname": "Deal name",
+                    col_name: "Date entered stage",
+                    "amount": "Qualified dollars"
+                }
+                df_display = df_display.rename(columns=rename_dict)
+                
+                st.dataframe(df_display, use_container_width=True, hide_index=True)
+            else:
+                st.info(f"No deals reached {stage_name} in this timeframe.")
 
     # For debugging the schema initially on Cloud
     with st.expander("Debug: DataFrame Schemas"):
