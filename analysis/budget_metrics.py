@@ -59,15 +59,7 @@ FROM `modeling-449120.internal_metrics.HUBSPOT_DEALS`
 def load_comms_data() -> pd.DataFrame:
     client = get_bq_client()
     df = client.query(QUERY_COMMS).to_dataframe()
-    # Ensure date columns are formatted
-    if 'timestamp' in df.columns:
-        df['comm_date'] = pd.to_datetime(df['timestamp']).dt.date
-    else:
-        # Fallback if timestamp missing: try to derive from entered POSRES
-        # The Looker Studio date filter applies to when the action occurred.
-        # We will assume "createdate" or actual timestamp exists in 'ac'.
-        # Let's inspect the columns. We'll dump a debug flag below.
-        pass
+    df['hs_timestamp'] = pd.to_datetime(df['hs_timestamp']).dt.date
     return df
 
 @st.cache_data(show_spinner="Querying Deals (Funnel)…", ttl=600)
@@ -100,7 +92,7 @@ def main():
     df_comms_raw = load_comms_data()
     df_deals_raw = load_deals_data()
 
-    df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw['hs_timestamp']).dt.date
+    df_comms_raw['hs_timestamp'] = pd.to_datetime(df_comms_raw['hs_timestamp']).dt.date
 
     # ── Filters Sidebar ───────────────────────────────────────────────────
     st.sidebar.header("🎛  Filters")
@@ -144,7 +136,7 @@ def main():
         selected_icp = []
 
     # Apply Filters to Comms
-    mask_comms = (df_comms_raw['comm_date'] >= start_date) & (df_comms_raw['comm_date'] <= end_date)
+    mask_comms = (df_comms_raw['hs_timestamp'] >= start_date) & (df_comms_raw['hs_timestamp'] <= end_date)
     if selected_won_company != "All" and 'is_company_won' in df_comms_raw.columns:
         b_val = selected_won_company == "True"
         mask_comms &= (df_comms_raw['is_company_won'] == b_val)
