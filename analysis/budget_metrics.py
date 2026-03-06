@@ -101,13 +101,8 @@ def main():
     df_deals_raw = load_deals_data()
 
     # We need to find the actual comm date column. Let's fallback to 'createdate' or similar if 'timestamp' missing.
-    if 'timestamp' in df_comms_raw.columns:
-        df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw['timestamp']).dt.date
-    elif 'createdate' in df_comms_raw.columns:
-        df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw['createdate']).dt.date
-    else:
-        # Just grab the first date_entered we can find as a rough proxy if all else fails
-        df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw.get('date_entered_positive_response', pd.NaT)).dt.date
+    if 'hs_timestamp' in df_comms_raw.columns:
+        df_comms_raw['comm_date'] = pd.to_datetime(df_comms_raw['hs_timestamp']).dt.date
 
     # ── Filters Sidebar ───────────────────────────────────────────────────
     st.sidebar.header("🎛  Filters")
