@@ -1,0 +1,7 @@
+# Toggle pages on/off by setting true/false.
+# Changes take effect on next app reload (no redeploy needed).
+
+[pages]
+deal_amounts      = true
+stage_funnel      = true
+company_contacts  = true

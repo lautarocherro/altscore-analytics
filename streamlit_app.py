@@ -4,6 +4,7 @@ Entrypoint with password authentication.
 """
 
 import streamlit as st
+from app_settings import is_page_enabled
 
 st.set_page_config(
     page_title="AltScore Analytics",
@@ -45,19 +46,22 @@ st.caption("Internal dashboards — select a page from the sidebar")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.markdown("### 💼 Deal Amounts")
-    st.write("Distribution analysis & High/Low Ticket clustering")
-    st.page_link("pages/1_💼_Deal_Amounts.py", label="Open →", icon="💼")
+    if is_page_enabled("deal_amounts"):
+        st.markdown("### 💼 Deal Amounts")
+        st.write("Distribution analysis & High/Low Ticket clustering")
+        st.page_link("pages/1_💼_Deal_Amounts.py", label="Open →", icon="💼")
 
 with col2:
-    st.markdown("### 🔀 Stage Funnel")
-    st.write("Conversion rates & time between pipeline stages")
-    st.page_link("pages/2_🔀_Stage_Funnel.py", label="Open →", icon="🔀")
+    if is_page_enabled("stage_funnel"):
+        st.markdown("### 🔀 Stage Funnel")
+        st.write("Conversion rates & time between pipeline stages")
+        st.page_link("pages/2_🔀_Stage_Funnel.py", label="Open →", icon="🔀")
 
 with col3:
-    st.markdown("### 🏢 Company Contacts")
-    st.write("Contact coverage, reachability & ICP breakdown")
-    st.page_link("pages/3_🏢_Company_Contacts.py", label="Open →", icon="🏢")
+    if is_page_enabled("company_contacts"):
+        st.markdown("### 🏢 Company Contacts")
+        st.write("Contact coverage, reachability & ICP breakdown")
+        st.page_link("pages/3_🏢_Company_Contacts.py", label="Open →", icon="🏢")
 
 # Sidebar sign out
 if st.sidebar.button("🚪 Sign out"):
