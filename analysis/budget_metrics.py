@@ -151,12 +151,6 @@ def main():
     # Product Filter (maps to Deal 'house' column)
     if "house" in df_deals_raw.columns:
         product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
-    elif "house" in df_comms_raw.columns:
-        product_opts = sorted(df_comms_raw["house"].dropna().unique().tolist())
-    else:
-        product_opts = []
-        
-    if product_opts:
         selected_product = st.sidebar.multiselect("Product", product_opts, default=product_opts)
     else:
         selected_product = []
