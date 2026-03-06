@@ -123,8 +123,13 @@ def main():
     else:
         selected_dealtype = []
     
-    icp_opts = sorted(df_comms_raw["ideal_customer_profile_tier"].unique().tolist())
-
+    if "ideal_customer_profile_tier" in df_comms_raw.columns:
+        icp_opts = sorted(df_comms_raw["ideal_customer_profile_tier"].unique().tolist())
+    elif "hs_ideal_customer_profile" in df_deals_raw.columns:
+        icp_opts = sorted(df_deals_raw["hs_ideal_customer_profile"].unique().tolist())
+    else:
+        icp_opts = []
+    
     if icp_opts:
         selected_icp = st.sidebar.multiselect("Ideal Customer Tier", icp_opts, default=icp_opts)
     else:
