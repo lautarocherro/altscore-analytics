@@ -185,28 +185,30 @@ def main():
     contacts_per_company = contacts_reached / companies_contacted if companies_contacted > 0 else 0
     
     # Funnel Metrics (from Deals)
-    if 'date_entered_positive_response' in df_deals.columns:
-        pos_res_count = df_deals['date_entered_positive_response'].notna().sum()
-    else:
-        pos_res_count = 0
-        
+    def count_stage(col):
+        return df_deals[col].notna().sum() if col in df_deals.columns else 0
+
+    pos_res_count = count_stage('date_entered_positive_response')
     deals_per_company = (pos_res_count / companies_contacted * 100) if companies_contacted > 0 else 0
     
-    if 'date_entered_discovery_call' in df_deals.columns:
-        disc_call_count = df_deals['date_entered_discovery_call'].notna().sum()
+    disc_call_count = count_stage('date_entered_discovery_call')
+    # Qualified Leads = Demo
+    qual_leads_count = count_stage('date_entered_demo')
+    proposal_count = count_stage('date_entered_proposal')
+    negotiation_count = count_stage('date_entered_negotiation')
+    legal_docs_count = count_stage('date_entered_legal_documents')
+    delivery_count = count_stage('date_entered_delivery')
+    closed_won_count = count_stage('date_entered_closed_won')
+    
+    # Calculate amount for Qualified Leads (Demo stage)
+    if 'date_entered_demo' in df_deals.columns:
+        df_qual = df_deals[df_deals['date_entered_demo'].notna()]
+        qual_value = df_qual['amount'].sum() if 'amount' in df_qual.columns else 0
     else:
-        disc_call_count = 0
-    
-    # Qualified Leads = Entered Demo (Stage C) or beyond
-    qual_leads_mask = df_deals['numeric_final_dealstage'] >= 3 if 'numeric_final_dealstage' in df_deals.columns else df_deals['date_entered_demo'].notna()
-    df_qual = df_deals[qual_leads_mask]
-    qual_leads_count = len(df_qual)
-    qual_value = df_qual['amount'].sum() if 'amount' in df_qual.columns else 0
+        df_qual = pd.DataFrame()
+        qual_value = 0
+        
     avg_qual_value = qual_value / qual_leads_count if qual_leads_count > 0 else 0
-    
-    # Proposals = Entered Proposal (Stage D) or beyond  
-    proposal_mask = df_deals['numeric_final_dealstage'] >= 4 if 'numeric_final_dealstage' in df_deals.columns else df_deals['date_entered_proposal'].notna()
-    proposal_count = proposal_mask.sum()
 
     st.subheader("🎯 Reach & Early Funnel")
     c1, c2, c3, c4 = st.columns(4)
@@ -217,12 +219,22 @@ def main():
     
     st.markdown("---")
     st.subheader("💼 Pipeline Conversions")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("# Positive Responses", f"{pos_res_count:,}")
-    c2.metric("# Discovery Calls", f"{disc_call_count:,}")
-    c3.metric("# Qualified Leads", f"{qual_leads_count:,}")
-    c4.metric("# Proposals", f"{proposal_count:,}")
     
+    # Row 1: Early/Mid Funnel
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("1. Positive Responses", f"{pos_res_count:,}")
+    c2.metric("2. Discovery Calls", f"{disc_call_count:,}")
+    c3.metric("3. Qualified Leads (Demo)", f"{qual_leads_count:,}")
+    c4.metric("4. Proposals", f"{proposal_count:,}")
+    
+    # Row 2: Late Funnel
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("5. Negotiation", f"{negotiation_count:,}")
+    c2.metric("6. Legal Docs", f"{legal_docs_count:,}")
+    c3.metric("7. Delivery", f"{delivery_count:,}")
+    c4.metric("8. Closed Won", f"{closed_won_count:,}")
+    
+    # Row 3: Values
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Qualified $", f"${qual_value:,.0f}")
     c2.metric("Avg Qualified $", f"${avg_qual_value:,.0f}")
