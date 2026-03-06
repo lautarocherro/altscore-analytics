@@ -9,4 +9,5 @@ if not st.session_state.get("authenticated"):
     st.warning("🔒 Please sign in from the home page")
     st.stop()
 
-import analysis.company_contacts  # noqa: F401, E402
+from analysis.company_contacts import main
+main()

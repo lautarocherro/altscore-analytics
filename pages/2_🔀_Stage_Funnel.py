@@ -9,4 +9,5 @@ if not st.session_state.get("authenticated"):
     st.warning("🔒 Please sign in from the home page")
     st.stop()
 
-import analysis.deal_stage_funnel  # noqa: F401, E402
+from analysis.deal_stage_funnel import main
+main()
