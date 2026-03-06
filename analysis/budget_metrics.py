@@ -150,8 +150,8 @@ def main():
         
     # Product Filter (maps to Deal 'house' column)
     product_opts = sorted(df_deals_raw["house"].dropna().unique().tolist())
-    selected_product = st.sidebar.multiselect("Product", product_opts, default=product_opts)
-
+    default_product = ["AltDecision"] if "AltDecision" in product_opts else product_opts
+    selected_product = st.sidebar.multiselect("Product", product_opts, default=default_product)
 
     # Apply Filters to Comms
     mask_comms = (df_comms_raw['hs_timestamp'] >= start_date) & (df_comms_raw['hs_timestamp'] <= end_date)
