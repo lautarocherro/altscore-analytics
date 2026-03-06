@@ -1,0 +1,15 @@
+# Python
+numpy~=2.2.5
+pandas~=2.2.3
+matplotlib
+seaborn
+scikit-learn
+
+# Streamlit
+streamlit
+
+# BigQuery
+google-cloud-bigquery~=3.35.1
+google-auth~=2.37.0
+pyarrow~=21.0.0
+db-dtypes~=1.4.3

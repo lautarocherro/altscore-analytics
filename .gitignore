@@ -1,0 +1,27 @@
+# Python
+*.py[cod]
+__pycache__/
+.venv/
+*.egg-info/
+
+# Credentials — NEVER commit
+credentials/
+.streamlit/secrets.toml
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+htmlcov/
+.coverage
+.pytest_cache/
