@@ -123,11 +123,28 @@ def main():
     else:
         selected_dealtype = []
     
-    icp_opts = sorted(df_comms_raw["ideal_customer_profile_tier"].dropna().unique().tolist())
-
-    
-    if icp_opts:
-        selected_icp = st.sidebar.multiselect("Ideal Customer Tier", icp_opts, default=icp_opts)
+    # Use comms raw for ICP options
+    if "ideal_customer_profile_tier" in df_comms_raw.columns:
+        # Fill NaN with a placeholder string 'Null_Value' so it can be selected
+        df_comms_raw["ideal_customer_profile_tier"] = df_comms_raw["ideal_customer_profile_tier"].fillna("Null_Value")
+        
+        # Helper to make labels pretty: 'tier_1' -> 'Tier 1'
+        def format_icp_name(val):
+            if val == "Null_Value":
+                return "Null"
+            return str(val).replace("_", " ").title()
+            
+        raw_icp_opts = sorted(df_comms_raw["ideal_customer_profile_tier"].unique().tolist())
+        # Provide a format_func so the UI looks pretty
+        if raw_icp_opts:
+            selected_icp = st.sidebar.multiselect(
+                "Ideal Customer Tier", 
+                raw_icp_opts, 
+                default=raw_icp_opts,
+                format_func=format_icp_name
+            )
+        else:
+            selected_icp = []
     else:
         selected_icp = []
 
@@ -146,6 +163,8 @@ def main():
     if selected_dealtype and 'dealtype' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['dealtype'].isin(selected_dealtype)
     if selected_icp and 'hs_ideal_customer_profile' in df_deals_raw.columns:
+        # Re-apply the same fallback to Deals column
+        df_deals_raw["hs_ideal_customer_profile"] = df_deals_raw["hs_ideal_customer_profile"].fillna("Null_Value")
         mask_deals &= df_deals_raw['hs_ideal_customer_profile'].isin(selected_icp)
         
     df_deals = df_deals_raw[mask_deals].copy()
