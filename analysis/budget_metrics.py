@@ -98,13 +98,15 @@ def main():
     # ── Filters Sidebar ───────────────────────────────────────────────────
     st.sidebar.header("🎛  Filters")
     
-    # Date Range
+    from dateutil.relativedelta import relativedelta
     today = date.today()
-    default_start = date(today.year, today.month, 1)
+    # Default to full last month
+    default_start = (today.replace(day=1) - relativedelta(months=1))
+    default_end = default_start + relativedelta(day=31)
     
     date_range = st.sidebar.date_input(
         "Date Range",
-        value=(default_start, today),
+        value=(default_start, default_end),
         max_value=today
     )
     
