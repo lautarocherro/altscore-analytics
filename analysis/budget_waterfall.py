@@ -174,14 +174,20 @@ def main():
     current_day = today.day
     proj_multiplier = days_in_current_month / current_day if current_day > 0 else 1
     
-    # Companies Contacted
+    # Companies Contacted (and Contacts Reached for funnel only)
     # We use hs_timestamp 
     if not df_comms.empty:
         df_comms['month_bucket'] = pd.to_datetime(df_comms['hs_timestamp']).dt.to_period('M').dt.strftime('%Y-%b')
+        reach_counts = df_comms.groupby('month_bucket')['contact_id'].nunique().to_dict()
         company_counts = df_comms.groupby('month_bucket')['company_id'].nunique().to_dict()
     else:
+        reach_counts = {}
         company_counts = {}
         
+    sum_last_3_reach = sum(reach_counts.get(p, 0) for p in last_3_months_strs)
+    curr_reach = reach_counts.get(current_month_str, 0)
+    funnel_contacts_val = sum_last_3_reach + curr_reach
+    
     comp_row = {"Stage": "1. Companies Contacted"}
     sum_last_3_comp = 0
     for p in periods:
@@ -296,29 +302,47 @@ def main():
     
     # ── Visuals ─────────────────────────────────────────────────────────────
     
-    st.subheader("📊 Aggregate Funnel Waterfall")
+    st.subheader("📊 Segmented Funnel Waterfall (Last 3 Months + Current)")
     
-    # Plotly Funnel Chart based on 'Last 3 Months' + 'Current Month'
-    funnel_stages = df_matrix["Stage"].tolist()
-    funnel_vals = []
+    # Build complete stages & counts list including Contacts Reached for the funnel
+    all_stages = ["0. Contacts Reached"] + df_matrix["Stage"].tolist()
+    all_vals = [funnel_contacts_val]
     
     for _, row in df_matrix.iterrows():
         l3 = row.get("Last 3 Months", 0)
         curr = row.get(current_month_str, 0)
         val = (l3 if pd.notna(l3) and isinstance(l3, (int, float)) else 0) + \
               (curr if pd.notna(curr) and isinstance(curr, (int, float)) else 0)
-        funnel_vals.append(val)
+        all_vals.append(val)
+        
+    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
     
-    fig = go.Figure(go.Funnel(
-        y=funnel_stages,
-        x=funnel_vals,
-        textinfo="value+percent initial+percent previous",
-        opacity=0.85,
-        marker={"color": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22"]}
-    ))
-    fig.update_layout(margin={"l": 200, "r": 20, "t": 20, "b": 20}, height=500)
+    def create_funnel(stages_slice, vals_slice, start_idx):
+        short_names = [s.split('. ')[1] if '. ' in s else s for s in stages_slice]
+        return go.Figure(go.Funnel(
+            y=short_names,
+            x=vals_slice,
+            textinfo="value+percent initial+percent previous",
+            opacity=0.85,
+            marker={"color": colors[start_idx:start_idx+len(stages_slice)]}
+        )).update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=400)
+
+    fc1, fc2, fc3 = st.columns(3)
     
-    st.plotly_chart(fig, use_container_width=True)
+    # Left: Contacts (0) to PR (2)
+    with fc1:
+        st.markdown("**🎯 Top Funnel**")
+        st.plotly_chart(create_funnel(all_stages[0:3], all_vals[0:3], 0), use_container_width=True)
+        
+    # Middle: PR (2) to QL (4)
+    with fc2:
+        st.markdown("**🤝 Mid Funnel**")
+        st.plotly_chart(create_funnel(all_stages[2:5], all_vals[2:5], 2), use_container_width=True)
+        
+    # Right: QL (4) to Closed Won (end)
+    with fc3:
+        st.markdown("**💰 Bottom Funnel**")
+        st.plotly_chart(create_funnel(all_stages[4:], all_vals[4:], 4), use_container_width=True)
     
     st.markdown("---")
     st.subheader("📅 Time-Sliced Progression Matrix")
@@ -347,28 +371,40 @@ def main():
         st.dataframe(df_matrix[cols_l3], use_container_width=True, hide_index=True)
     
     st.markdown("---")
-    st.subheader("⏱️ Conversion & Velocity Matrix")
+    st.subheader("⏱️ Conversion & Velocity Waterfall")
+    st.caption("Averages over the **Last 3 Months** (with Current Month pacing shown below)")
     
-    df_vel_matrix = pd.DataFrame(list(vel_matrix.values()))
-
-    # Apply same 3-split to Velocity matrix
-    cols_prev_vel = ["Metric"] + previous_months
-    cols_curr_vel = ["Metric"]
-    if current_month_str in df_vel_matrix.columns:
-        cols_curr_vel.append(current_month_str)
-    cols_curr_vel.append("Projected (Current)")
-    cols_l3_vel = ["Metric", "Last 3 Months"]
-
-    vc1, vc2, vc3 = st.columns([4, 2, 2])
-    with vc1:
-        st.markdown("**1. Previous Months**")
-        st.dataframe(df_vel_matrix[cols_prev_vel], use_container_width=True, hide_index=True)
-    with vc2:
-        st.markdown("**2. Current Month & Projected**")
-        st.dataframe(df_vel_matrix[cols_curr_vel], use_container_width=True, hide_index=True)
-    with vc3:
-        st.markdown("**3. Last 3 Months**")
-        st.dataframe(df_vel_matrix[cols_l3_vel], use_container_width=True, hide_index=True)
-
+    steps = [k for k in vel_matrix.keys() if k.startswith("conv_")]
+    grid_cols = st.columns(3)
+    
+    for idx, conv_key in enumerate(steps):
+        i = conv_key.split("_")[1]
+        vel_key = f"vel_{i}"
+        
+        conv_row = vel_matrix[conv_key]
+        vel_row = vel_matrix.get(vel_key, {})
+        
+        step_name = conv_row["Metric"].replace("% Conversion (", "").replace(")", "")
+        
+        conv_val = conv_row.get("Last 3 Months", "-")
+        conv_curr = conv_row.get("Projected (Current)", "-")
+        
+        vel_val = vel_row.get("Last 3 Months", "-") if vel_key in vel_matrix else "N/A"
+        vel_curr = vel_row.get("Projected (Current)", "-") if vel_key in vel_matrix else "N/A"
+        
+        with grid_cols[idx % 3]:
+            with st.container(border=True):
+                st.markdown(f"**{step_name}**")
+                mc1, mc2 = st.columns(2)
+                
+                # Conversion metric
+                delta_c = f"Current: {conv_curr}" if conv_curr != "-" else None
+                mc1.metric("Conversion", conv_val, delta_c, delta_color="off")
+                
+                # Velocity metric
+                v_display = f"{vel_val} d" if vel_val not in ("-", "N/A") else vel_val
+                delta_v = f"Current: {vel_curr} d" if vel_curr not in ("-", "N/A") else None
+                mc2.metric("Avg Velocity", v_display, delta_v, delta_color="off")
+                
 if __name__ == "__main__":
     main()
