@@ -423,6 +423,7 @@ def main():
     
     if not df_icp.empty:
         df_icp["ideal_customer_profile_tier"] = df_icp["ideal_customer_profile_tier"].replace("Null_Value", "Unknown").fillna("Unknown")
+        df_icp["ideal_customer_profile_tier"] = df_icp["ideal_customer_profile_tier"].str.replace("_", " ").str.title()
         
         # Aggregate Total Value and Count by ICP
         icp_agg = df_icp.groupby("ideal_customer_profile_tier").agg(
