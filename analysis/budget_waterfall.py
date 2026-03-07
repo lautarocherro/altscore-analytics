@@ -311,21 +311,25 @@ def main():
     funnel_vals_curr = []
     funnel_vals_l3 = []
     
-    # 0. Contacts Reached (sum up previous months)
+    # 0. Contacts Reached logic for individual previous months
     previous_months = [p for p in periods if p != current_month_str]
-    sum_prev_comp = sum(reach_counts.get(p, 0) for p in previous_months)
+    
+    funnel_vals_per_month = {m: [] for m in previous_months}
+    for m in previous_months:
+        funnel_vals_per_month[m].append(reach_counts.get(m, 0))
+        
     curr_comp = int(np.round(reach_counts.get(current_month_str, 0) * proj_multiplier))
     
-    funnel_vals_prev.append(sum_prev_comp)
     funnel_vals_curr.append(curr_comp)
     funnel_vals_l3.append(sum_last_3_reach)
     
     for _, row in df_matrix.iterrows():
         l3 = row.get("Last 3 Months", 0)
         curr = row.get("Projected (Current)", 0)
-        sum_prev = sum(row.get(p, 0) for p in previous_months if pd.notna(row.get(p, 0)))
         
-        funnel_vals_prev.append(sum_prev)
+        for m in previous_months:
+            funnel_vals_per_month[m].append(row.get(m, 0) if pd.notna(row.get(m, 0)) else 0)
+            
         funnel_vals_curr.append(curr)
         funnel_vals_l3.append(l3)
         
@@ -341,14 +345,23 @@ def main():
             marker={"color": colors[start_idx:start_idx+len(stages_slice)]}
         )).update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=500)
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.markdown("**Previous Months**")
-        st.plotly_chart(create_funnel(all_stages, funnel_vals_prev, 0), use_container_width=True)
-    with c2:
+    # Number of total columns: 1 for each previous month + Current + Last 3 Months
+    total_cols = len(previous_months) + 2
+    cols = st.columns(total_cols)
+    
+    # Render individual previous months
+    for i, m in enumerate(previous_months):
+        with cols[i]:
+            st.markdown(f"**{m}**")
+            st.plotly_chart(create_funnel(all_stages, funnel_vals_per_month[m], 0), use_container_width=True)
+            
+    # Render Current Month
+    with cols[-2]:
         st.markdown("**Current Month (Proj)**")
         st.plotly_chart(create_funnel(all_stages, funnel_vals_curr, 0), use_container_width=True)
-    with c3:
+        
+    # Render Last 3 Months
+    with cols[-1]:
         st.markdown("**Last 3 Months**")
         st.plotly_chart(create_funnel(all_stages, funnel_vals_l3, 0), use_container_width=True)
     
