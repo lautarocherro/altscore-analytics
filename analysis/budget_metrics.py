@@ -434,8 +434,8 @@ def main():
         # Calculate Average
         icp_agg["Avg_Deal_Value"] = icp_agg["Total_Pipeline_Value"] / icp_agg["Qualified_Deals"]
         
-        # Sort by total value
-        icp_agg = icp_agg.sort_values("Total_Pipeline_Value", ascending=False)
+        # Sort by ICP Tier
+        icp_agg = icp_agg.sort_values("ideal_customer_profile_tier", ascending=True)
         
         c1, c2 = st.columns([1, 2])
         
