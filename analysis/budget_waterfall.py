@@ -339,44 +339,18 @@ def main():
             textinfo="value+percent initial+percent previous",
             opacity=0.85,
             marker={"color": colors[start_idx:start_idx+len(stages_slice)]}
-        )).update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=280)
+        )).update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=500)
 
-    # Top Funnel Row
-    st.markdown("### 🎯 Top Funnel")
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("**Previous Months**")
-        st.plotly_chart(create_funnel(all_stages[0:3], funnel_vals_prev[0:3], 0), use_container_width=True)
+        st.plotly_chart(create_funnel(all_stages, funnel_vals_prev, 0), use_container_width=True)
     with c2:
         st.markdown("**Current Month (Proj)**")
-        st.plotly_chart(create_funnel(all_stages[0:3], funnel_vals_curr[0:3], 0), use_container_width=True)
+        st.plotly_chart(create_funnel(all_stages, funnel_vals_curr, 0), use_container_width=True)
     with c3:
         st.markdown("**Last 3 Months**")
-        st.plotly_chart(create_funnel(all_stages[0:3], funnel_vals_l3[0:3], 0), use_container_width=True)
-        
-    st.markdown("---")
-    
-    # Mid Funnel Row
-    st.markdown("### 🤝 Mid Funnel")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.plotly_chart(create_funnel(all_stages[2:5], funnel_vals_prev[2:5], 2), use_container_width=True)
-    with c2:
-        st.plotly_chart(create_funnel(all_stages[2:5], funnel_vals_curr[2:5], 2), use_container_width=True)
-    with c3:
-        st.plotly_chart(create_funnel(all_stages[2:5], funnel_vals_l3[2:5], 2), use_container_width=True)
-        
-    st.markdown("---")
-
-    # Bottom Funnel Row
-    st.markdown("### 💰 Bottom Funnel")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.plotly_chart(create_funnel(all_stages[4:], funnel_vals_prev[4:], 4), use_container_width=True)
-    with c2:
-        st.plotly_chart(create_funnel(all_stages[4:], funnel_vals_curr[4:], 4), use_container_width=True)
-    with c3:
-        st.plotly_chart(create_funnel(all_stages[4:], funnel_vals_l3[4:], 4), use_container_width=True)
+        st.plotly_chart(create_funnel(all_stages, funnel_vals_l3, 0), use_container_width=True)
     
     st.markdown("---")
     st.subheader("📅 Time-Sliced Progression Matrix")
