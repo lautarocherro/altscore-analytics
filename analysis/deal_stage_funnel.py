@@ -54,33 +54,9 @@ DAYS_IN_COLS = [
 ]
 
 QUERY = """
-SELECT
-    numeric_final_dealstage,
-    final_dealstage,
-    house,
-    days_in_demo,
-    days_in_proposal,
-    days_in_negotiation,
-    days_in_legal_documents,
-    days_in_delivery,
-    days_in_closed_won,
-    days_in_closed_lost,
-    days_from_positive_response_to_discovery_call,
-    days_from_discovery_call_to_demo,
-    days_from_demo_to_proposal,
-    days_from_proposal_to_negotiation,
-    days_from_negotiation_to_legal_documents,
-    days_from_legal_documents_to_delivery,
-    days_from_delivery_to_closed_won,
-    days_from_demo_to_closed_won,
-    days_open,
-    days_deal_open,
-    amount
+SELECT *
 FROM `modeling-449120.internal_metrics.HUBSPOT_DEALS`
 WHERE date_entered_positive_response IS NOT NULL
-  AND date_entered_positive_response BETWEEN '2025-10-01' AND '2026-12-31'
-  AND dealtype = 'New Business'
-  AND house   = 'AltDecision'
 """
 
 
@@ -88,6 +64,12 @@ WHERE date_entered_positive_response IS NOT NULL
 def load_data() -> pd.DataFrame:
     client = get_bq_client()
     raw = client.query(QUERY).to_dataframe()
+    
+    # Convert date columns for filtering
+    date_cols = [c for c in raw.columns if 'date_entered' in c]
+    for col in date_cols:
+        raw[col] = pd.to_datetime(raw[col]).dt.date
+        
     MAX_DAYS = 730
     day_cols = [c for c in raw.columns if c.startswith("days")]
     for c in day_cols:
@@ -120,13 +102,67 @@ def main():
 
     # ── Sidebar filters ──────────────────────────────────────────────────
     st.sidebar.header("🎛  Filters")
-    all_final_stages = sorted(df["final_dealstage"].dropna().unique().tolist())
-    selected_stages = st.sidebar.multiselect(
-        "Final deal stage",
-        options=all_final_stages,
-        default=all_final_stages,
+    
+    from datetime import date
+    today = date.today()
+    default_start = date(today.year, today.month, 1)
+    
+    date_range = st.sidebar.date_input(
+        "Date Range (Positive Response)",
+        value=(default_start, today),
+        max_value=today
     )
-    mask = df["final_dealstage"].isin(selected_stages)
+    
+    if len(date_range) == 2:
+        start_date, end_date = date_range
+    else:
+        start_date, end_date = date_range[0], date_range[0]
+
+    if "dealtype" in df.columns:
+        dealtype_opts = sorted(df["dealtype"].dropna().unique().tolist())
+        selected_dealtype = st.sidebar.multiselect("Dealtype", dealtype_opts, default=["New Business"] if "New Business" in dealtype_opts else dealtype_opts)
+    else:
+        selected_dealtype = []
+        
+    if "channel" in df.columns:
+        channel_opts = sorted(df["channel"].dropna().unique().tolist())
+        selected_channel = st.sidebar.multiselect("Channel", channel_opts)
+    else:
+        selected_channel = []
+        
+    if "sdr" in df.columns:
+        sdr_opts = sorted(df["sdr"].dropna().unique().tolist())
+        selected_sdr = st.sidebar.multiselect("SDR", sdr_opts)
+    else:
+        selected_sdr = []
+        
+    if "archetype_vertical_account" in df.columns:
+        arch_opts = sorted(df["archetype_vertical_account"].dropna().unique().tolist())
+        selected_archetype = st.sidebar.multiselect("Archetype Vertical", arch_opts)
+    elif "archetype_vertical" in df.columns:
+        arch_opts = sorted(df["archetype_vertical"].dropna().unique().tolist())
+        selected_archetype = st.sidebar.multiselect("Archetype Vertical", arch_opts)
+    else:
+        selected_archetype = []
+
+    # Apply Filters
+    mask = pd.Series(True, index=df.index)
+    
+    # Filter by Date Range on 'date_entered_positive_response'
+    if 'date_entered_positive_response' in df.columns:
+        mask &= df['date_entered_positive_response'].notna() & (df['date_entered_positive_response'] >= start_date) & (df['date_entered_positive_response'] <= end_date)
+        
+    if selected_dealtype and 'dealtype' in df.columns:
+        mask &= df['dealtype'].isin(selected_dealtype)
+    if selected_channel and 'channel' in df.columns:
+        mask &= df['channel'].isin(selected_channel)
+    if selected_sdr and 'sdr' in df.columns:
+        mask &= df['sdr'].isin(selected_sdr)
+    if selected_archetype and 'archetype_vertical_account' in df.columns:
+        mask &= df['archetype_vertical_account'].isin(selected_archetype)
+    elif selected_archetype and 'archetype_vertical' in df.columns:
+        mask &= df['archetype_vertical'].isin(selected_archetype)
+        
     df_filt = df[mask].copy()
 
     # ═══════════════════════════════════════════════════════════════════
