@@ -12,6 +12,7 @@ import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
 import plotly.graph_objects as go
+import plotly.express as px
 from analysis.shared import get_bq_client
 
 # ── QUERIES ─────────────────────────────────────────────────────────────
@@ -412,3 +413,60 @@ def main():
                 st.dataframe(df_display, use_container_width=True, hide_index=True)
             else:
                 st.info(f"No deals reached {stage_name} in this timeframe.")
+                
+    # ── Funnel Value by ICP Tier ───────────────────────────────────────────
+    st.markdown("---")
+    st.subheader("🏢 Funnel Value by ICP Tier")
+    
+    if "hs_ideal_customer_profile" in df_deals.columns and "amount" in df_deals.columns:
+        # We only want to look at Deals that reached the Qualified Lead (Demo) stage in timeframe
+        df_icp = df_deals[in_range('date_entered_demo')].copy()
+        
+        if not df_icp.empty:
+            df_icp["hs_ideal_customer_profile"] = df_icp["hs_ideal_customer_profile"].replace("Null_Value", "Unknown").fillna("Unknown")
+            
+            # Aggregate Total Value and Count by ICP
+            icp_agg = df_icp.groupby("hs_ideal_customer_profile").agg(
+                Qualified_Deals=("id", "nunique"),
+                Total_Pipeline_Value=("amount", "sum")
+            ).reset_index()
+            
+            # Calculate Average
+            icp_agg["Avg_Deal_Value"] = icp_agg["Total_Pipeline_Value"] / icp_agg["Qualified_Deals"]
+            
+            # Sort by total value
+            icp_agg = icp_agg.sort_values("Total_Pipeline_Value", ascending=False)
+            
+            c1, c2 = st.columns([1, 2])
+            
+            with c1:
+                # Format for display
+                icp_display = icp_agg.copy()
+                icp_display = icp_display.rename(columns={
+                    "hs_ideal_customer_profile": "ICP Tier",
+                    "Qualified_Deals": "Deals",
+                    "Total_Pipeline_Value": "Total Value",
+                    "Avg_Deal_Value": "Avg Value"
+                })
+                
+                icp_display["Total Value"] = icp_display["Total Value"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
+                icp_display["Avg Value"] = icp_display["Avg Value"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
+                
+                st.dataframe(icp_display, use_container_width=True, hide_index=True)
+                
+            with c2:
+                # Bar chart for Total Value by ICP
+                fig = px.bar(
+                    icp_agg, 
+                    x="Total_Pipeline_Value", 
+                    y="hs_ideal_customer_profile", 
+                    orientation='h',
+                    title="Total Qualified Value by Region/Tier",
+                    labels={"hs_ideal_customer_profile": "ICP Tier", "Total_Pipeline_Value": "Total Value ($)"},
+                    text_auto='.2s',
+                    color_discrete_sequence=["#2ca02c"]
+                )
+                fig.update_layout(yaxis={'categoryorder':'total ascending'}, margin={"l": 20, "r": 20, "t": 40, "b": 20}, height=300)
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No deals reached the Qualified Lead stage in this timeframe.")
