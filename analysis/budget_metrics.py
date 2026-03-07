@@ -198,10 +198,10 @@ def main():
                  
     if selected_dealtype and 'dealtype' in df_deals_raw.columns:
         mask_deals &= df_deals_raw['dealtype'].isin(selected_dealtype)
-    if selected_icp and 'hs_ideal_customer_profile' in df_deals_raw.columns:
+    if selected_icp and 'ideal_customer_profile_tier' in df_deals_raw.columns:
         # Re-apply the same fallback to Deals column
-        df_deals_raw["hs_ideal_customer_profile"] = df_deals_raw["hs_ideal_customer_profile"].fillna("Null_Value")
-        mask_deals &= df_deals_raw['hs_ideal_customer_profile'].isin(selected_icp)
+        df_deals_raw["ideal_customer_profile_tier"] = df_deals_raw["ideal_customer_profile_tier"].fillna("Null_Value")
+        mask_deals &= df_deals_raw['ideal_customer_profile_tier'].isin(selected_icp)
     if selected_product:
         if 'house' in df_deals_raw.columns:
             mask_deals &= df_deals_raw['house'].isin(selected_product)
@@ -418,15 +418,15 @@ def main():
     st.markdown("---")
     st.subheader("🏢 Funnel Value by ICP Tier")
     
-    if "hs_ideal_customer_profile" in df_deals.columns and "amount" in df_deals.columns:
+    if "ideal_customer_profile_tier" in df_deals.columns and "amount" in df_deals.columns:
         # We only want to look at Deals that reached the Qualified Lead (Demo) stage in timeframe
         df_icp = df_deals[in_range('date_entered_demo')].copy()
         
         if not df_icp.empty:
-            df_icp["hs_ideal_customer_profile"] = df_icp["hs_ideal_customer_profile"].replace("Null_Value", "Unknown").fillna("Unknown")
+            df_icp["ideal_customer_profile_tier"] = df_icp["ideal_customer_profile_tier"].replace("Null_Value", "Unknown").fillna("Unknown")
             
             # Aggregate Total Value and Count by ICP
-            icp_agg = df_icp.groupby("hs_ideal_customer_profile").agg(
+            icp_agg = df_icp.groupby("ideal_customer_profile_tier").agg(
                 Qualified_Deals=("id", "nunique"),
                 Total_Pipeline_Value=("amount", "sum")
             ).reset_index()
@@ -443,7 +443,7 @@ def main():
                 # Format for display
                 icp_display = icp_agg.copy()
                 icp_display = icp_display.rename(columns={
-                    "hs_ideal_customer_profile": "ICP Tier",
+                    "ideal_customer_profile_tier": "ICP Tier",
                     "Qualified_Deals": "Deals",
                     "Total_Pipeline_Value": "Total Value",
                     "Avg_Deal_Value": "Avg Value"
@@ -459,10 +459,10 @@ def main():
                 fig = px.bar(
                     icp_agg, 
                     x="Total_Pipeline_Value", 
-                    y="hs_ideal_customer_profile", 
+                    y="ideal_customer_profile_tier", 
                     orientation='h',
                     title="Total Qualified Value by Region/Tier",
-                    labels={"hs_ideal_customer_profile": "ICP Tier", "Total_Pipeline_Value": "Total Value ($)"},
+                    labels={"ideal_customer_profile_tier": "ICP Tier", "Total_Pipeline_Value": "Total Value ($)"},
                     text_auto='.2s',
                     color_discrete_sequence=["#2ca02c"]
                 )
