@@ -105,7 +105,7 @@ def main():
     
     from datetime import date
     today = date.today()
-    default_start = date(today.year, today.month, 1)
+    default_start = date(2025, 10, 1)
     
     date_range = st.sidebar.date_input(
         "Date Range (Positive Response)",
