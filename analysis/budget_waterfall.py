@@ -174,35 +174,60 @@ def main():
     current_day = today.day
     proj_multiplier = days_in_current_month / current_day if current_day > 0 else 1
     
-    # Reach row (Contacts Reached)
+    # Reach row (Contacts Reached) & Companies Contacted
     # We use hs_timestamp 
     if not df_comms.empty:
         df_comms['month_bucket'] = pd.to_datetime(df_comms['hs_timestamp']).dt.to_period('M').dt.strftime('%Y-%b')
         reach_counts = df_comms.groupby('month_bucket')['contact_id'].nunique().to_dict()
+        company_counts = df_comms.groupby('month_bucket')['company_id'].nunique().to_dict()
     else:
         reach_counts = {}
+        company_counts = {}
         
-    reach_row = {"Stage": "0. Contacts Reached"}
-    sum_last_3 = 0
+    reach_row = {"Stage": "1. Contacts Reached"}
+    sum_last_3_reach = 0
     for p in periods:
         val = reach_counts.get(p, 0)
         reach_row[p] = val
         if p in last_3_months_strs:
-            sum_last_3 += val
+            sum_last_3_reach += val
             
-    reach_row["Last 3 Months"] = sum_last_3
+    reach_row["Last 3 Months"] = sum_last_3_reach
+    reach_row["Projected (Current)"] = int(np.round(reach_counts.get(current_month_str, 0) * proj_multiplier))
     
-    # Projected current month
-    curr_month_val = reach_counts.get(current_month_str, 0)
-    reach_row["Projected (Current)"] = int(np.round(curr_month_val * proj_multiplier))
+    matrix["1. Contacts Reached"] = reach_row
     
-    matrix["0. Contacts Reached"] = reach_row
+    comp_row = {"Stage": "2. Companies Contacted"}
+    sum_last_3_comp = 0
+    for p in periods:
+        val = company_counts.get(p, 0)
+        comp_row[p] = val
+        if p in last_3_months_strs:
+            sum_last_3_comp += val
+            
+    comp_row["Last 3 Months"] = sum_last_3_comp
+    comp_row["Projected (Current)"] = int(np.round(company_counts.get(current_month_str, 0) * proj_multiplier))
+    
+    matrix["2. Companies Contacted"] = comp_row
     
     # Funnel stages
+    # We also prepare detailed DataFrames for metrics
+    vel_matrix = {}
+    
+    # Map previous stage for velocity calculation
+    # "Companies Contacted" doesn't have an easily calculable 'date_entered' natively in Deals
+    # For PR onwards, we have dates.
+    prev_stage_label = "2. Companies Contacted"
+    prev_col_name = None
+    
     for i, (stage_name, col_name) in enumerate(stages):
-        stage_label = f"{i+1}. {stage_name}"
+        stage_label = f"{i+3}. {stage_name}"
         row = {"Stage": stage_label}
         sum_last_3 = 0
+        
+        # Velocity and Conversion rows
+        conv_row = {"Metric": f"% Conversion ({prev_stage_label.split('. ')[1]} → {stage_name})"}
+        vel_row = {"Metric": f"Days: {prev_stage_label.split('. ')[1]} → {stage_name}"}
         
         if col_name in df_deals.columns:
             # Filter to bounds
@@ -212,17 +237,48 @@ def main():
             if not df_stage.empty:
                 df_stage['month_bucket'] = pd.to_datetime(df_stage[col_name]).dt.to_period('M').dt.strftime('%Y-%b')
                 stage_counts = df_stage.groupby('month_bucket').size().to_dict()
+                
+                # Velocity calculation
+                if prev_col_name and prev_col_name in df_stage.columns:
+                    diff_days = (pd.to_datetime(df_stage[col_name]) - pd.to_datetime(df_stage[prev_col_name])).dt.days
+                    df_stage['velocity'] = diff_days
+                    velocity_means = df_stage.groupby('month_bucket')['velocity'].mean().to_dict()
+                else:
+                    velocity_means = {}
             else:
                 stage_counts = {}
+                velocity_means = {}
                 
             for p in periods:
                 val = stage_counts.get(p, 0)
                 row[p] = val
                 if p in last_3_months_strs:
                     sum_last_3 += val
+                    
+                # Store velocity
+                vel_p = velocity_means.get(p, np.nan)
+                vel_row[p] = f"{vel_p:.1f}" if pd.notna(vel_p) else "-"
+                
+            # Compute 'Last 3 Months' Velocity
+            if prev_col_name and not df_stage.empty:
+                df_l3 = df_stage[df_stage['month_bucket'].isin(last_3_months_strs)]
+                l3_mean = df_l3['velocity'].mean() if 'velocity' in df_l3.columns else np.nan
+                vel_row["Last 3 Months"] = f"{l3_mean:.1f}" if pd.notna(l3_mean) else "-"
+                
+                # Current project velocity 
+                df_curr = df_stage[df_stage['month_bucket'] == current_month_str]
+                curr_mean = df_curr['velocity'].mean() if 'velocity' in df_curr.columns else np.nan
+                vel_row["Projected (Current)"] = f"{curr_mean:.1f}" if pd.notna(curr_mean) else "-"
+            else:
+                vel_row["Last 3 Months"] = "-"
+                vel_row["Projected (Current)"] = "-"
+                
         else:
             for p in periods:
                 row[p] = 0
+                vel_row[p] = "-"
+            vel_row["Last 3 Months"] = "-"
+            vel_row["Projected (Current)"] = "-"
                 
         row["Last 3 Months"] = sum_last_3
         
@@ -231,6 +287,25 @@ def main():
         row["Projected (Current)"] = int(np.round(curr_month_val * proj_multiplier))
         
         matrix[stage_label] = row
+        
+        # Calculate conversion metrics AFTER populating counts
+        prev_row = matrix.get(prev_stage_label, {})
+        for p in periods + ["Last 3 Months", "Projected (Current)"]:
+            target = row.get(p, 0)
+            base = prev_row.get(p, 0)
+            if base > 0:
+                conv_row[p] = f"{(target / base * 100):.1f}%"
+            else:
+                conv_row[p] = "-"
+                
+        vel_matrix[f"conv_{i}"] = conv_row
+        
+        # Only show days diff if it's deal-to-deal
+        if prev_col_name:
+            vel_matrix[f"vel_{i}"] = vel_row
+        
+        prev_stage_label = stage_label
+        prev_col_name = col_name
         
     df_matrix = pd.DataFrame(list(matrix.values()))
     
@@ -256,11 +331,52 @@ def main():
     st.markdown("---")
     st.subheader("📅 Time-Sliced Progression Matrix")
     
-    st.dataframe(
-        df_matrix, 
-        use_container_width=True, 
-        hide_index=True,
-    )
+    # Split into 3 sections based on time buckets
+    previous_months = [p for p in periods if p != current_month_str]
+    cols_prev = ["Stage"] + previous_months
+    
+    cols_curr = ["Stage"]
+    if current_month_str in df_matrix.columns:
+        cols_curr.append(current_month_str)
+    cols_curr.append("Projected (Current)")
+    
+    cols_l3 = ["Stage", "Last 3 Months"]
+    
+    # Render with Streamlit columns
+    c1, c2, c3 = st.columns([4, 2, 2])
+    with c1:
+        st.markdown("**1. Previous Months**")
+        st.dataframe(df_matrix[cols_prev], use_container_width=True, hide_index=True)
+    with c2:
+        st.markdown("**2. Current Month & Projected**")
+        st.dataframe(df_matrix[cols_curr], use_container_width=True, hide_index=True)
+    with c3:
+        st.markdown("**3. Last 3 Months**")
+        st.dataframe(df_matrix[cols_l3], use_container_width=True, hide_index=True)
+    
+    st.markdown("---")
+    st.subheader("⏱️ Conversion & Velocity Matrix")
+    
+    df_vel_matrix = pd.DataFrame(list(vel_matrix.values()))
+
+    # Apply same 3-split to Velocity matrix
+    cols_prev_vel = ["Metric"] + previous_months
+    cols_curr_vel = ["Metric"]
+    if current_month_str in df_vel_matrix.columns:
+        cols_curr_vel.append(current_month_str)
+    cols_curr_vel.append("Projected (Current)")
+    cols_l3_vel = ["Metric", "Last 3 Months"]
+
+    vc1, vc2, vc3 = st.columns([4, 2, 2])
+    with vc1:
+        st.markdown("**1. Previous Months**")
+        st.dataframe(df_vel_matrix[cols_prev_vel], use_container_width=True, hide_index=True)
+    with vc2:
+        st.markdown("**2. Current Month & Projected**")
+        st.dataframe(df_vel_matrix[cols_curr_vel], use_container_width=True, hide_index=True)
+    with vc3:
+        st.markdown("**3. Last 3 Months**")
+        st.dataframe(df_vel_matrix[cols_l3_vel], use_container_width=True, hide_index=True)
 
 if __name__ == "__main__":
     main()
