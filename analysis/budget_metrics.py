@@ -96,6 +96,14 @@ def main():
 
     df_comms_raw['hs_timestamp'] = pd.to_datetime(df_comms_raw['hs_timestamp']).dt.date
 
+    # ── Page Setup & Header ─────────────────────────────────────────────
+    st.markdown("""
+        <div style="background: linear-gradient(90deg, #1f77b4 0%, #00d4ff 100%); padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem;">
+            <h1 style="color: white; margin: 0; padding: 0;">📈 Budget Metrics - Playground</h1>
+            <p style="color: #e0f7fa; font-size: 1.1rem; margin-top: 5px;">Interactive exploration of funnel velocity, reach, and pipeline value.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
     # ── Filters Sidebar ───────────────────────────────────────────────────
     st.sidebar.header("🎛  Filters")
     
@@ -250,18 +258,38 @@ def main():
     qual_value = df_qual['amount'].sum() if 'amount' in df_qual.columns else 0
     avg_qual_value = qual_value / qual_leads_count if qual_leads_count > 0 else 0
 
-    # Styled KPI Cards
+    # Styled KPI Cards & Colorful Accents
     st.markdown("""
         <style>
+        /* Base Metric Card Styling */
         div[data-testid="stMetricValue"] {
-            font-size: 1.8rem;
-            color: #1f77b4;
+            font-size: 2rem;
+            font-weight: 700;
         }
         div[data-testid="stMetricLabel"] {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #888;
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 5px;
         }
+        
+        /* Reach & Early Funnel (Row 1): Orange/Coral theme */
+        div[data-testid="stVerticalBlock"] > div:nth-child(5) div[data-testid="stMetricValue"] { color: #ff7f0e; }
+        div[data-testid="stVerticalBlock"] > div:nth-child(5) div[data-testid="stMetricLabel"] { color: #d65f00; }
+        
+        /* Early/Mid Conversions (Row 2): Purple theme */
+        div[data-testid="stVerticalBlock"] > div:nth-child(8) div[data-testid="stMetricValue"] { color: #9467bd; }
+        div[data-testid="stVerticalBlock"] > div:nth-child(8) div[data-testid="stMetricLabel"] { color: #6a4887; }
+        
+        /* Late Conversions (Row 3): Teal/Green theme */
+        div[data-testid="stVerticalBlock"] > div:nth-child(10) div[data-testid="stMetricValue"] { color: #2ca02c; }
+        div[data-testid="stVerticalBlock"] > div:nth-child(10) div[data-testid="stMetricLabel"] { color: #1e701e; }
+        
+        /* Pipeline Values (Row 4): Gold theme */
+        div[data-testid="stVerticalBlock"] > div:nth-child(13) div[data-testid="stMetricValue"] { color: #d4af37; font-size: 2.2rem; }
+        div[data-testid="stVerticalBlock"] > div:nth-child(13) div[data-testid="stMetricLabel"] { color: #b5952f; }
+        
+        /* Subheaders with colors */
+        h3 { color: #2c3e50; font-weight: 600; padding-bottom: 5px; border-bottom: 2px solid #eee; margin-top: 1.5rem; }
         </style>
     """, unsafe_allow_html=True)
 
