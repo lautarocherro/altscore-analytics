@@ -174,30 +174,15 @@ def main():
     current_day = today.day
     proj_multiplier = days_in_current_month / current_day if current_day > 0 else 1
     
-    # Reach row (Contacts Reached) & Companies Contacted
+    # Companies Contacted
     # We use hs_timestamp 
     if not df_comms.empty:
         df_comms['month_bucket'] = pd.to_datetime(df_comms['hs_timestamp']).dt.to_period('M').dt.strftime('%Y-%b')
-        reach_counts = df_comms.groupby('month_bucket')['contact_id'].nunique().to_dict()
         company_counts = df_comms.groupby('month_bucket')['company_id'].nunique().to_dict()
     else:
-        reach_counts = {}
         company_counts = {}
         
-    reach_row = {"Stage": "1. Contacts Reached"}
-    sum_last_3_reach = 0
-    for p in periods:
-        val = reach_counts.get(p, 0)
-        reach_row[p] = val
-        if p in last_3_months_strs:
-            sum_last_3_reach += val
-            
-    reach_row["Last 3 Months"] = sum_last_3_reach
-    reach_row["Projected (Current)"] = int(np.round(reach_counts.get(current_month_str, 0) * proj_multiplier))
-    
-    matrix["1. Contacts Reached"] = reach_row
-    
-    comp_row = {"Stage": "2. Companies Contacted"}
+    comp_row = {"Stage": "1. Companies Contacted"}
     sum_last_3_comp = 0
     for p in periods:
         val = company_counts.get(p, 0)
@@ -208,7 +193,7 @@ def main():
     comp_row["Last 3 Months"] = sum_last_3_comp
     comp_row["Projected (Current)"] = int(np.round(company_counts.get(current_month_str, 0) * proj_multiplier))
     
-    matrix["2. Companies Contacted"] = comp_row
+    matrix["1. Companies Contacted"] = comp_row
     
     # Funnel stages
     # We also prepare detailed DataFrames for metrics
@@ -217,11 +202,11 @@ def main():
     # Map previous stage for velocity calculation
     # "Companies Contacted" doesn't have an easily calculable 'date_entered' natively in Deals
     # For PR onwards, we have dates.
-    prev_stage_label = "2. Companies Contacted"
+    prev_stage_label = "1. Companies Contacted"
     prev_col_name = None
     
     for i, (stage_name, col_name) in enumerate(stages):
-        stage_label = f"{i+3}. {stage_name}"
+        stage_label = f"{i+2}. {stage_name}"
         row = {"Stage": stage_label}
         sum_last_3 = 0
         
@@ -313,9 +298,16 @@ def main():
     
     st.subheader("📊 Aggregate Funnel Waterfall")
     
-    # Plotly Funnel Chart based on the 'Last 3 Months' column
+    # Plotly Funnel Chart based on 'Last 3 Months' + 'Current Month'
     funnel_stages = df_matrix["Stage"].tolist()
-    funnel_vals = df_matrix["Last 3 Months"].tolist()
+    funnel_vals = []
+    
+    for _, row in df_matrix.iterrows():
+        l3 = row.get("Last 3 Months", 0)
+        curr = row.get(current_month_str, 0)
+        val = (l3 if pd.notna(l3) and isinstance(l3, (int, float)) else 0) + \
+              (curr if pd.notna(curr) and isinstance(curr, (int, float)) else 0)
+        funnel_vals.append(val)
     
     fig = go.Figure(go.Funnel(
         y=funnel_stages,
