@@ -5,6 +5,7 @@ matplotlib
 seaborn
 scikit-learn
 watchdog
+plotly
 
 # Streamlit
 streamlit>=1.45.0
@@ -15,4 +16,3 @@ google-cloud-bigquery
 google-auth
 pyarrow
 db-dtypes
-plotly
