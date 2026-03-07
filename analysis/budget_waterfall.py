@@ -302,18 +302,32 @@ def main():
     
     # ── Visuals ─────────────────────────────────────────────────────────────
     
-    st.subheader("📊 Segmented Funnel Waterfall (Last 3 Months + Current)")
+    st.subheader("📊 Segmented Funnel Waterfall")
     
-    # Build complete stages & counts list including Contacts Reached for the funnel
+    # Build complete stages list including Contacts Reached for the funnel
     all_stages = ["0. Contacts Reached"] + df_matrix["Stage"].tolist()
-    all_vals = [funnel_contacts_val]
+    
+    funnel_vals_prev = []
+    funnel_vals_curr = []
+    funnel_vals_l3 = []
+    
+    # 0. Contacts Reached (sum up previous months)
+    previous_months = [p for p in periods if p != current_month_str]
+    sum_prev_comp = sum(reach_counts.get(p, 0) for p in previous_months)
+    curr_comp = int(np.round(reach_counts.get(current_month_str, 0) * proj_multiplier))
+    
+    funnel_vals_prev.append(sum_prev_comp)
+    funnel_vals_curr.append(curr_comp)
+    funnel_vals_l3.append(sum_last_3_reach)
     
     for _, row in df_matrix.iterrows():
         l3 = row.get("Last 3 Months", 0)
-        curr = row.get(current_month_str, 0)
-        val = (l3 if pd.notna(l3) and isinstance(l3, (int, float)) else 0) + \
-              (curr if pd.notna(curr) and isinstance(curr, (int, float)) else 0)
-        all_vals.append(val)
+        curr = row.get("Projected (Current)", 0)
+        sum_prev = sum(row.get(p, 0) for p in previous_months if pd.notna(row.get(p, 0)))
+        
+        funnel_vals_prev.append(sum_prev)
+        funnel_vals_curr.append(curr)
+        funnel_vals_l3.append(l3)
         
     colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
     
@@ -325,30 +339,49 @@ def main():
             textinfo="value+percent initial+percent previous",
             opacity=0.85,
             marker={"color": colors[start_idx:start_idx+len(stages_slice)]}
-        )).update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=400)
+        )).update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=280)
 
-    fc1, fc2, fc3 = st.columns(3)
+    # Top Funnel Row
+    st.markdown("### 🎯 Top Funnel")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("**Previous Months**")
+        st.plotly_chart(create_funnel(all_stages[0:3], funnel_vals_prev[0:3], 0), use_container_width=True)
+    with c2:
+        st.markdown("**Current Month (Proj)**")
+        st.plotly_chart(create_funnel(all_stages[0:3], funnel_vals_curr[0:3], 0), use_container_width=True)
+    with c3:
+        st.markdown("**Last 3 Months**")
+        st.plotly_chart(create_funnel(all_stages[0:3], funnel_vals_l3[0:3], 0), use_container_width=True)
+        
+    st.markdown("---")
     
-    # Left: Contacts (0) to PR (2)
-    with fc1:
-        st.markdown("**🎯 Top Funnel**")
-        st.plotly_chart(create_funnel(all_stages[0:3], all_vals[0:3], 0), use_container_width=True)
+    # Mid Funnel Row
+    st.markdown("### 🤝 Mid Funnel")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.plotly_chart(create_funnel(all_stages[2:5], funnel_vals_prev[2:5], 2), use_container_width=True)
+    with c2:
+        st.plotly_chart(create_funnel(all_stages[2:5], funnel_vals_curr[2:5], 2), use_container_width=True)
+    with c3:
+        st.plotly_chart(create_funnel(all_stages[2:5], funnel_vals_l3[2:5], 2), use_container_width=True)
         
-    # Middle: PR (2) to QL (4)
-    with fc2:
-        st.markdown("**🤝 Mid Funnel**")
-        st.plotly_chart(create_funnel(all_stages[2:5], all_vals[2:5], 2), use_container_width=True)
-        
-    # Right: QL (4) to Closed Won (end)
-    with fc3:
-        st.markdown("**💰 Bottom Funnel**")
-        st.plotly_chart(create_funnel(all_stages[4:], all_vals[4:], 4), use_container_width=True)
+    st.markdown("---")
+
+    # Bottom Funnel Row
+    st.markdown("### 💰 Bottom Funnel")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.plotly_chart(create_funnel(all_stages[4:], funnel_vals_prev[4:], 4), use_container_width=True)
+    with c2:
+        st.plotly_chart(create_funnel(all_stages[4:], funnel_vals_curr[4:], 4), use_container_width=True)
+    with c3:
+        st.plotly_chart(create_funnel(all_stages[4:], funnel_vals_l3[4:], 4), use_container_width=True)
     
     st.markdown("---")
     st.subheader("📅 Time-Sliced Progression Matrix")
     
     # Split into 3 sections based on time buckets
-    previous_months = [p for p in periods if p != current_month_str]
     cols_prev = ["Stage"] + previous_months
     
     cols_curr = ["Stage"]
