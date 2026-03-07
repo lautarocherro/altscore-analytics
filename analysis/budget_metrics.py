@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from datetime import date, timedelta
+import plotly.graph_objects as go
 from analysis.shared import get_bq_client
 
 # ── QUERIES ─────────────────────────────────────────────────────────────
@@ -246,34 +247,101 @@ def main():
     qual_value = df_qual['amount'].sum() if 'amount' in df_qual.columns else 0
     avg_qual_value = qual_value / qual_leads_count if qual_leads_count > 0 else 0
 
+    # Styled KPI Cards
+    st.markdown("""
+        <style>
+        div[data-testid="stMetricValue"] {
+            font-size: 1.8rem;
+            color: #1f77b4;
+        }
+        div[data-testid="stMetricLabel"] {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #888;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.subheader("🎯 Reach & Early Funnel")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Contacts Reached", f"{contacts_reached:,}")
-    c2.metric("Companies Contacted", f"{companies_contacted:,}")
-    c3.metric("Contacts per Company", f"{contacts_per_company:.2f}")
-    c4.metric("Deals per Company (Conv.)", f"{deals_per_company:.2f}%")
-    
+    with c1:
+        with st.container(border=True):
+            st.metric("Contacts Reached", f"{contacts_reached:,}")
+    with c2:
+        with st.container(border=True):
+            st.metric("Companies Contacted", f"{companies_contacted:,}")
+    with c3:
+        with st.container(border=True):
+            st.metric("Contacts per Company", f"{contacts_per_company:.2f}")
+    with c4:
+        with st.container(border=True):
+            st.metric("Deals per Company (Conv.)", f"{deals_per_company:.2f}%")
+            
+    # ── Pipeline Conversions ─────────────────────────────────────────────
     st.markdown("---")
     st.subheader("💼 Pipeline Conversions")
-    
+
+    # Funnel Chart
+    stages_list = [
+        "Positive Responses", "Discovery Calls", "Qualified Leads (Demo)",
+        "Proposals", "Negotiation", "Legal Docs", "Delivery", "Closed Won"
+    ]
+    counts_list = [
+        pos_res_count, disc_call_count, qual_leads_count,
+        proposal_count, negotiation_count, legal_docs_count, delivery_count, closed_won_count
+    ]
+
+    fig = go.Figure(go.Funnel(
+        y=stages_list,
+        x=counts_list,
+        textinfo="value+percent initial+percent previous",
+        opacity=0.85,
+        marker={"color": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]}
+    ))
+    fig.update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=400)
+    st.plotly_chart(fig, use_container_width=True)
+
     # Row 1: Early/Mid Funnel
+    st.markdown("##### Stage Details")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("1. Positive Responses", f"{pos_res_count:,}")
-    c2.metric("2. Discovery Calls", f"{disc_call_count:,}")
-    c3.metric("3. Qualified Leads (Demo)", f"{qual_leads_count:,}")
-    c4.metric("4. Proposals", f"{proposal_count:,}")
-    
+    with c1:
+        with st.container(border=True):
+            st.metric("1. Positive Responses", f"{pos_res_count:,}")
+    with c2:
+        with st.container(border=True):
+            st.metric("2. Discovery Calls", f"{disc_call_count:,}")
+    with c3:
+        with st.container(border=True):
+            st.metric("3. Qualified Leads (Demo)", f"{qual_leads_count:,}")
+    with c4:
+        with st.container(border=True):
+            st.metric("4. Proposals", f"{proposal_count:,}")
+            
     # Row 2: Late Funnel
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("5. Negotiation", f"{negotiation_count:,}")
-    c2.metric("6. Legal Docs", f"{legal_docs_count:,}")
-    c3.metric("7. Delivery", f"{delivery_count:,}")
-    c4.metric("8. Closed Won", f"{closed_won_count:,}")
-    
+    with c1:
+        with st.container(border=True):
+            st.metric("5. Negotiation", f"{negotiation_count:,}")
+    with c2:
+        with st.container(border=True):
+            st.metric("6. Legal Docs", f"{legal_docs_count:,}")
+    with c3:
+        with st.container(border=True):
+            st.metric("7. Delivery", f"{delivery_count:,}")
+    with c4:
+        with st.container(border=True):
+            st.metric("8. Closed Won", f"{closed_won_count:,}")
+            
     # Row 3: Values
+    st.markdown("---")
+    st.subheader("💰 Funnel Value")
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Qualified $", f"${qual_value:,.0f}")
-    c2.metric("Avg Qualified $", f"${avg_qual_value:,.0f}")
+    with c1:
+        with st.container(border=True):
+            st.metric("Qualified Pipeline $", f"${qual_value:,.0f}")
+    with c2:
+        with st.container(border=True):
+            st.metric("Avg Qualified Deal $", f"${avg_qual_value:,.0f}")
     c3.empty()
     c4.empty()
     
