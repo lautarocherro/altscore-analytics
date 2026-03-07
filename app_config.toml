@@ -6,4 +6,4 @@ deal_amounts      = false
 stage_funnel      = true
 company_contacts  = true
 budget_metrics    = true
-budget_waterfall  = true
+budget_waterfall  = false
