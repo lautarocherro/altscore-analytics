@@ -418,55 +418,54 @@ def main():
     st.markdown("---")
     st.subheader("🏢 Funnel Value by ICP Tier")
     
-    if "ideal_customer_profile_tier" in df_deals.columns and "amount" in df_deals.columns:
-        # We only want to look at Deals that reached the Qualified Lead (Demo) stage in timeframe
-        df_icp = df_deals[in_range('date_entered_demo')].copy()
+    # We only want to look at Deals that reached the Qualified Lead (Demo) stage in timeframe
+    df_icp = df_deals[in_range('date_entered_demo')].copy()
+    
+    if not df_icp.empty:
+        df_icp["ideal_customer_profile_tier"] = df_icp["ideal_customer_profile_tier"].replace("Null_Value", "Unknown").fillna("Unknown")
         
-        if not df_icp.empty:
-            df_icp["ideal_customer_profile_tier"] = df_icp["ideal_customer_profile_tier"].replace("Null_Value", "Unknown").fillna("Unknown")
+        # Aggregate Total Value and Count by ICP
+        icp_agg = df_icp.groupby("ideal_customer_profile_tier").agg(
+            Qualified_Deals=("id", "nunique"),
+            Total_Pipeline_Value=("amount", "sum")
+        ).reset_index()
+        
+        # Calculate Average
+        icp_agg["Avg_Deal_Value"] = icp_agg["Total_Pipeline_Value"] / icp_agg["Qualified_Deals"]
+        
+        # Sort by total value
+        icp_agg = icp_agg.sort_values("Total_Pipeline_Value", ascending=False)
+        
+        c1, c2 = st.columns([1, 2])
+        
+        with c1:
+            # Format for display
+            icp_display = icp_agg.copy()
+            icp_display = icp_display.rename(columns={
+                "ideal_customer_profile_tier": "ICP Tier",
+                "Qualified_Deals": "Deals",
+                "Total_Pipeline_Value": "Total Value",
+                "Avg_Deal_Value": "Avg Value"
+            })
             
-            # Aggregate Total Value and Count by ICP
-            icp_agg = df_icp.groupby("ideal_customer_profile_tier").agg(
-                Qualified_Deals=("id", "nunique"),
-                Total_Pipeline_Value=("amount", "sum")
-            ).reset_index()
+            icp_display["Total Value"] = icp_display["Total Value"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
+            icp_display["Avg Value"] = icp_display["Avg Value"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
             
-            # Calculate Average
-            icp_agg["Avg_Deal_Value"] = icp_agg["Total_Pipeline_Value"] / icp_agg["Qualified_Deals"]
+            st.dataframe(icp_display, use_container_width=True, hide_index=True)
             
-            # Sort by total value
-            icp_agg = icp_agg.sort_values("Total_Pipeline_Value", ascending=False)
-            
-            c1, c2 = st.columns([1, 2])
-            
-            with c1:
-                # Format for display
-                icp_display = icp_agg.copy()
-                icp_display = icp_display.rename(columns={
-                    "ideal_customer_profile_tier": "ICP Tier",
-                    "Qualified_Deals": "Deals",
-                    "Total_Pipeline_Value": "Total Value",
-                    "Avg_Deal_Value": "Avg Value"
-                })
-                
-                icp_display["Total Value"] = icp_display["Total Value"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
-                icp_display["Avg Value"] = icp_display["Avg Value"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
-                
-                st.dataframe(icp_display, use_container_width=True, hide_index=True)
-                
-            with c2:
-                # Bar chart for Total Value by ICP
-                fig = px.bar(
-                    icp_agg, 
-                    x="Total_Pipeline_Value", 
-                    y="ideal_customer_profile_tier", 
-                    orientation='h',
-                    title="Total Qualified Value by Region/Tier",
-                    labels={"ideal_customer_profile_tier": "ICP Tier", "Total_Pipeline_Value": "Total Value ($)"},
-                    text_auto='.2s',
-                    color_discrete_sequence=["#2ca02c"]
-                )
-                fig.update_layout(yaxis={'categoryorder':'total ascending'}, margin={"l": 20, "r": 20, "t": 40, "b": 20}, height=300)
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No deals reached the Qualified Lead stage in this timeframe.")
+        with c2:
+            # Bar chart for Total Value by ICP
+            fig = px.bar(
+                icp_agg, 
+                x="Total_Pipeline_Value", 
+                y="ideal_customer_profile_tier", 
+                orientation='h',
+                title="Total Qualified Value by Region/Tier",
+                labels={"ideal_customer_profile_tier": "ICP Tier", "Total_Pipeline_Value": "Total Value ($)"},
+                text_auto='.2s',
+                color_discrete_sequence=["#2ca02c"]
+            )
+            fig.update_layout(yaxis={'categoryorder':'total ascending'}, margin={"l": 20, "r": 20, "t": 40, "b": 20}, height=300)
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No deals reached the Qualified Lead stage in this timeframe.")
