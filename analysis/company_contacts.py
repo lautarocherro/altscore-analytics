@@ -276,6 +276,45 @@ def main():
     st.pyplot(fig)
     plt.close()
 
+    # ═══════════════════════════════════════════════════════════════════
+    # SECTION 5 — Actionable Lists
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("---")
+    st.subheader("📋 Actionable Lists")
+
+    st.markdown("#### Companies with no valid contacts")
+    df_no_contacts = df_filt[~df_filt["has_valid_contact"]].sort_values("createdate", ascending=False)
+    if df_no_contacts.empty:
+        st.info("All companies have at least one valid contact!")
+    else:
+        st.dataframe(
+            df_no_contacts[["company_name", "icp", "createdate"]].rename(columns={
+                "company_name": "Company",
+                "icp": "ICP",
+                "createdate": "Created Date"
+            }),
+            width="stretch",
+            hide_index=True
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    st.markdown("#### Companies with valid contacts but no 'first_contact'")
+    df_no_first_contact = df_filt[df_filt["has_valid_contact"] & ~df_filt["was_contacted"]].sort_values("createdate", ascending=False)
+    if df_no_first_contact.empty:
+        st.info("All companies with valid contacts have been contacted!")
+    else:
+        st.dataframe(
+            df_no_first_contact[["company_name", "valid_contacts_count", "icp", "createdate"]].rename(columns={
+                "company_name": "Company",
+                "valid_contacts_count": "Contacts",
+                "icp": "ICP",
+                "createdate": "Created Date"
+            }),
+            width="stretch",
+            hide_index=True
+        )
+
     st.markdown(
         "<div style='text-align:center;color:#555;font-size:.8rem;margin-top:2rem;'>"
         "Data: HubSpot Companies & Contacts · BigQuery · AltScore</div>",
