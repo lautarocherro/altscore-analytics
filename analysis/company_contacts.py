@@ -288,10 +288,10 @@ def main():
         st.info("All companies have at least one valid contact!")
     else:
         st.dataframe(
-            df_no_contacts[["company_name", "icp", "createdate"]].rename(columns={
+            df_no_contacts[["company_id", "company_name", "icp"]].rename(columns={
+                "company_id": "Company ID",
                 "company_name": "Company",
-                "icp": "ICP",
-                "createdate": "Created Date"
+                "icp": "Tier"
             }),
             width="stretch",
             hide_index=True
@@ -305,11 +305,11 @@ def main():
         st.info("All companies with valid contacts have been contacted!")
     else:
         st.dataframe(
-            df_no_first_contact[["company_name", "valid_contacts_count", "icp", "createdate"]].rename(columns={
+            df_no_first_contact[["company_id", "company_name", "valid_contacts_count", "icp"]].rename(columns={
+                "company_id": "Company ID",
                 "company_name": "Company",
                 "valid_contacts_count": "Contacts",
-                "icp": "ICP",
-                "createdate": "Created Date"
+                "icp": "Tier"
             }),
             width="stretch",
             hide_index=True
