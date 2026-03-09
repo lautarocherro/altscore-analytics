@@ -95,9 +95,9 @@ def main():
 
     # ── Page Setup & Header ─────────────────────────────────────────────
     st.markdown("""
-        <div style="background: linear-gradient(90deg, #1f77b4 0%, #00d4ff 100%); padding: 1.5rem; border-radius: 10px; margin-bottom: 2rem;">
-            <h1 style="color: white; margin: 0; padding: 0;">📈 Budget Metrics - Playground</h1>
-            <p style="color: #e0f7fa; font-size: 1.1rem; margin-top: 5px;">Interactive exploration of funnel velocity, reach, and pipeline value.</p>
+        <div style="background: white; border: 1px solid #E3E8EE; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+            <h1 style="color: #0A2540; margin: 0; padding: 0; font-weight: 600;">📈 Budget Metrics</h1>
+            <p style="color: #425466; font-size: 1.1rem; margin-top: 5px;">Interactive exploration of funnel velocity, reach, and pipeline value.</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -258,35 +258,30 @@ def main():
     # Styled KPI Cards & Colorful Accents
     st.markdown("""
         <style>
-        /* Base Metric Card Styling */
+        /* Base Metric Card Styling - Stripe Minimalist */
         div[data-testid="stMetricValue"] {
             font-size: 2rem;
-            font-weight: 700;
+            font-weight: 600;
+            color: #0A2540;
         }
         div[data-testid="stMetricLabel"] {
-            font-size: 1.05rem;
-            font-weight: 600;
-            margin-bottom: 5px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #425466;
+            margin-bottom: 4px;
         }
         
-        /* Reach & Early Funnel (Row 1): Orange/Coral theme */
-        div[data-testid="stVerticalBlock"] > div:nth-child(5) div[data-testid="stMetricValue"] { color: #ff7f0e; }
-        div[data-testid="stVerticalBlock"] > div:nth-child(5) div[data-testid="stMetricLabel"] { color: #d65f00; }
+        /* Highlight the Pipeline Value in purple-blue */
+        div[data-testid="stVerticalBlock"] > div:nth-child(15) div[data-testid="stMetricValue"] { color: #635BFF; font-size: 2.2rem; }
         
-        /* Early/Mid Conversions (Row 2): Purple theme */
-        div[data-testid="stVerticalBlock"] > div:nth-child(8) div[data-testid="stMetricValue"] { color: #9467bd; }
-        div[data-testid="stVerticalBlock"] > div:nth-child(8) div[data-testid="stMetricLabel"] { color: #6a4887; }
-        
-        /* Late Conversions (Row 3): Teal/Green theme */
-        div[data-testid="stVerticalBlock"] > div:nth-child(10) div[data-testid="stMetricValue"] { color: #2ca02c; }
-        div[data-testid="stVerticalBlock"] > div:nth-child(10) div[data-testid="stMetricLabel"] { color: #1e701e; }
-        
-        /* Pipeline Values (Row 4): Gold theme */
-        div[data-testid="stVerticalBlock"] > div:nth-child(13) div[data-testid="stMetricValue"] { color: #d4af37; font-size: 2.2rem; }
-        div[data-testid="stVerticalBlock"] > div:nth-child(13) div[data-testid="stMetricLabel"] { color: #b5952f; }
-        
-        /* Subheaders with colors */
-        h3 { color: #2c3e50; font-weight: 600; padding-bottom: 5px; border-bottom: 2px solid #eee; margin-top: 1.5rem; }
+        /* Subheaders with clean thin border */
+        h3 { 
+            color: #0A2540; 
+            font-weight: 600; 
+            padding-bottom: 8px; 
+            border-bottom: 1px solid #E3E8EE; 
+            margin-top: 2rem; 
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -323,8 +318,8 @@ def main():
         y=stages_list,
         x=counts_list,
         textinfo="value+percent initial+percent previous",
-        opacity=0.85,
-        marker={"color": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f"]}
+        opacity=0.9,
+        marker={"color": ["#115FE0", "#367AE9", "#5291F1", "#72A9F6", "#91BEFA", "#B1D2FD", "#D0E4FE", "#EBF4FE"]}
     ))
     fig.update_layout(margin={"l": 150, "r": 20, "t": 20, "b": 20}, height=400)
     st.plotly_chart(fig, use_container_width=True)
@@ -489,7 +484,7 @@ def main():
                 title="Total Qualified Value by Region/Tier",
                 labels={"ideal_customer_profile_tier": "ICP Tier", "Total_Pipeline_Value": "Total Value ($)"},
                 text_auto='.2s',
-                color_discrete_sequence=["#2ca02c"]
+                color_discrete_sequence=["#635BFF"]
             )
             fig.update_layout(yaxis={'categoryorder':'total ascending'}, margin={"l": 20, "r": 20, "t": 40, "b": 20}, height=300)
             st.plotly_chart(fig, use_container_width=True)

@@ -31,7 +31,9 @@ SELECT
   ) AS valid_contacts_count
 FROM `modeling-449120.internal_metrics.HUBSPOT_COMPANIES_FIRST_CONTACT` AS comp
 LEFT JOIN `modeling-449120.internal_metrics.HUBSPOT_CONTACTS` AS cont
-  ON comp.company_id = cont.company_id
+  ON comp.company_id = cont.company_id 
+  OR comp.company_id = cont.secondary_company_id 
+  OR comp.company_id = cont.tertiary_company_id
 WHERE comp.createdate >= '2025-10-01'
 GROUP BY 1, 2, 3, 4, 5
 """
