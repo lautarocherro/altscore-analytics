@@ -192,11 +192,12 @@ def main():
         plt.close()
 
     with tab_table:
-        top = (df_filt[["company_name", "country", "valid_contacts_count", "icp", "was_contacted"]]
+        top = (df_filt[["company_id", "company_name", "country", "valid_contacts_count", "icp", "was_contacted"]]
                .sort_values("valid_contacts_count", ascending=False)
                .head(20)
+               .rename(columns={"company_id": "Company ID"})
                .reset_index(drop=True))
-        top.columns = ["Company", "Country", "Valid Contacts", "ICP", "Contacted"]
+        top.columns = ["Company ID", "Company", "Country", "Valid Contacts", "ICP", "Contacted"]
         st.dataframe(top, width="stretch", hide_index=True)
 
     # ═══════════════════════════════════════════════════════════════════
