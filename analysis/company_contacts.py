@@ -88,7 +88,8 @@ def main():
     selected_icp = st.sidebar.multiselect("ICP Tier", options=icp_options, default=icp_options)
 
     sources = sorted(df["source"].unique().tolist())
-    selected_sources = st.sidebar.multiselect("Analytics Source", options=sources, default=[])
+    default_source = ["OFFLINE"] if "OFFLINE" in sources else []
+    selected_sources = st.sidebar.multiselect("Analytics Source", options=sources, default=default_source)
     
     active_sources = selected_sources if selected_sources else sources
 
