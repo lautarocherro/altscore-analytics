@@ -23,6 +23,7 @@ SELECT
   comp.hs_ideal_customer_profile,
   comp.country,
   comp.hs_analytics_source,
+  comp.enrichment_source_country,
   COUNT(
     CASE
       WHEN cont.email IS NOT NULL
@@ -37,7 +38,7 @@ LEFT JOIN `modeling-449120.internal_metrics.HUBSPOT_CONTACTS` AS cont
   OR comp.company_id = cont.secondary_company_id 
   OR comp.company_id = cont.tertiary_company_id
 WHERE comp.createdate >= '2025-10-01'
-GROUP BY 1, 2, 3, 4, 5, 6, 7
+GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
 """
 
 
@@ -52,6 +53,7 @@ def load_data() -> pd.DataFrame:
     raw["icp"] = raw["hs_ideal_customer_profile"].fillna("Unknown")
     raw["country"] = raw["country"].fillna("Unknown")
     raw["source"] = raw["hs_analytics_source"].fillna("Unknown")
+    raw["enrichment_source_country"] = raw["enrichment_source_country"].fillna("Unknown")
     return raw
 
 
@@ -94,6 +96,11 @@ def main():
     
     active_sources = selected_sources if selected_sources else sources
 
+    enrichment_countries = sorted(df["enrichment_source_country"].unique().tolist())
+    selected_enrichments = st.sidebar.multiselect("Enrichment Source Country", options=enrichment_countries, default=[])
+    
+    active_enrichments = selected_enrichments if selected_enrichments else enrichment_countries
+
     months = sorted(df["create_month"].unique().tolist())
     selected_months = st.sidebar.multiselect("Created Month", options=months, default=months)
 
@@ -102,6 +109,7 @@ def main():
         & df["create_month"].isin(selected_months) 
         & df["country"].isin(active_countries)
         & df["source"].isin(active_sources)
+        & df["enrichment_source_country"].isin(active_enrichments)
     )
     df_filt = df[mask].copy()
 
