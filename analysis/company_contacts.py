@@ -200,12 +200,12 @@ def main():
         plt.close()
 
     with tab_table:
-        top = (df_filt[["company_id", "company_name", "country", "valid_contacts_count", "icp", "was_contacted"]]
+        top = (df_filt[["company_id", "company_name", "country", "enrichment_source_country", "valid_contacts_count", "icp", "was_contacted"]]
                .sort_values("valid_contacts_count", ascending=False)
                .head(20)
                .rename(columns={"company_id": "Company ID"})
                .reset_index(drop=True))
-        top.columns = ["Company ID", "Company", "Country", "Valid Contacts", "ICP", "Contacted"]
+        top.columns = ["Company ID", "Company", "Country", "Enrichment Country", "Valid Contacts", "ICP", "Contacted"]
         st.dataframe(top, width="stretch", hide_index=True)
 
     # ═══════════════════════════════════════════════════════════════════
@@ -325,6 +325,64 @@ def main():
         plt.close()
 
     # ═══════════════════════════════════════════════════════════════════
+    # SECTION 3.6 — Enrichment Country Breakdown
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("---")
+    st.subheader("📍 Breakdown by Enrichment Source Country")
+
+    enrich_stats = (
+        df_filt.groupby("enrichment_source_country")
+        .agg(
+            Companies=("company_id", "count"),
+            With_Contacts=("has_valid_contact", "sum"),
+            Contacted=("was_contacted", "sum"),
+            Avg_Contacts=("valid_contacts_count", "mean"),
+        )
+        .reset_index()
+    )
+    enrich_stats["Contact Coverage %"] = (enrich_stats["With_Contacts"] / enrich_stats["Companies"] * 100).round(1)
+    enrich_stats["Contacted %"] = (enrich_stats["Contacted"] / enrich_stats["Companies"] * 100).round(1)
+    enrich_stats["Avg_Contacts"] = enrich_stats["Avg_Contacts"].round(1)
+    enrich_stats = enrich_stats.rename(columns={
+        "enrichment_source_country": "Enrichment Country",
+        "With_Contacts": "With Contacts",
+        "Avg_Contacts": "Avg Contacts",
+    })
+    enrich_stats = enrich_stats.sort_values("Companies", ascending=False).reset_index(drop=True)
+
+    col_tbl_enr, col_chart_enr = st.columns([1, 1])
+
+    with col_tbl_enr:
+        st.dataframe(enrich_stats, width="stretch", hide_index=True)
+
+    with col_chart_enr:
+        fig_enr, ax_enr = plt.subplots(figsize=(7, 4))
+        x_enr = range(len(enrich_stats))
+        w = 0.35
+        bars1_enr = ax_enr.bar([i - w/2 for i in x_enr], enrich_stats["Contact Coverage %"],
+                       width=w, label="Contact Coverage %", edgecolor="#444")
+        bars2_enr = ax_enr.bar([i + w/2 for i in x_enr], enrich_stats["Contacted %"],
+                       width=w, label="Contacted %", edgecolor="#444")
+        ax_enr.set_xticks(list(x_enr))
+        ax_enr.set_xticklabels(enrich_stats["Enrichment Country"], rotation=30, ha="right", fontsize=9)
+        ax_enr.set_ylabel("Percentage")
+        ax_enr.set_title("Coverage & Contacted Rate by Enrichment Country", fontsize=14, pad=12)
+        ax_enr.legend(facecolor="#1c1f26", edgecolor="#444")
+
+        for bar in bars1_enr:
+            h = bar.get_height()
+            ax_enr.text(bar.get_x() + bar.get_width()/2, h + 1, f"{h:.0f}%",
+                    ha="center", va="bottom", fontsize=8, color="white")
+        for bar in bars2_enr:
+            h = bar.get_height()
+            ax_enr.text(bar.get_x() + bar.get_width()/2, h + 1, f"{h:.0f}%",
+                    ha="center", va="bottom", fontsize=8, color="white")
+
+        plt.tight_layout()
+        st.pyplot(fig_enr)
+        plt.close()
+
+    # ═══════════════════════════════════════════════════════════════════
     # SECTION 4 — Monthly Trend
     # ═══════════════════════════════════════════════════════════════════
     st.markdown("---")
@@ -376,10 +434,11 @@ def main():
         st.info("All companies have at least one valid contact!")
     else:
         st.dataframe(
-            df_no_contacts[["company_id", "company_name", "country", "icp"]].rename(columns={
+            df_no_contacts[["company_id", "company_name", "country", "enrichment_source_country", "icp"]].rename(columns={
                 "company_id": "Company ID",
                 "company_name": "Company",
                 "country": "Country",
+                "enrichment_source_country": "Enrichment Country",
                 "icp": "Tier"
             }),
             width="stretch",
@@ -394,10 +453,11 @@ def main():
         st.info("All companies with valid contacts have been contacted!")
     else:
         st.dataframe(
-            df_no_first_contact[["company_id", "company_name", "country", "valid_contacts_count", "icp"]].rename(columns={
+            df_no_first_contact[["company_id", "company_name", "country", "enrichment_source_country", "valid_contacts_count", "icp"]].rename(columns={
                 "company_id": "Company ID",
                 "company_name": "Company",
                 "country": "Country",
+                "enrichment_source_country": "Enrichment Country",
                 "valid_contacts_count": "Contacts",
                 "icp": "Tier"
             }),
