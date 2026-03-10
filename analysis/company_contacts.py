@@ -22,6 +22,7 @@ SELECT
   comp.first_contact,
   comp.hs_ideal_customer_profile,
   comp.country,
+  comp.hs_analytics_source,
   COUNT(
     CASE
       WHEN cont.email IS NOT NULL
@@ -36,7 +37,7 @@ LEFT JOIN `modeling-449120.internal_metrics.HUBSPOT_CONTACTS` AS cont
   OR comp.company_id = cont.secondary_company_id 
   OR comp.company_id = cont.tertiary_company_id
 WHERE comp.createdate >= '2025-10-01'
-GROUP BY 1, 2, 3, 4, 5, 6
+GROUP BY 1, 2, 3, 4, 5, 6, 7
 """
 
 
@@ -50,6 +51,7 @@ def load_data() -> pd.DataFrame:
     raw["create_month"] = raw["createdate"].dt.to_period("M").astype(str)
     raw["icp"] = raw["hs_ideal_customer_profile"].fillna("Unknown")
     raw["country"] = raw["country"].fillna("Unknown")
+    raw["source"] = raw["hs_analytics_source"].fillna("Unknown")
     return raw
 
 
@@ -80,17 +82,27 @@ def main():
     st.sidebar.header("🎛  Filters")
 
     icp_options = sorted(df["icp"].unique().tolist())
-    selected_icp = st.sidebar.multiselect("ICP Tier", options=icp_options, default=icp_options)
+    selected_icp = st.sidebar.multiselect("Ideal Customer Tier", options=icp_options, default=icp_options)
 
     countries = sorted(df["country"].unique().tolist())
     selected_countries = st.sidebar.multiselect("Country", options=countries, default=[])
     
     active_countries = selected_countries if selected_countries else countries
 
+    sources = sorted(df["source"].unique().tolist())
+    selected_sources = st.sidebar.multiselect("Analytics Source", options=sources, default=[])
+    
+    active_sources = selected_sources if selected_sources else sources
+
     months = sorted(df["create_month"].unique().tolist())
     selected_months = st.sidebar.multiselect("Created Month", options=months, default=months)
 
-    mask = df["icp"].isin(selected_icp) & df["create_month"].isin(selected_months) & df["country"].isin(active_countries)
+    mask = (
+        df["icp"].isin(selected_icp) 
+        & df["create_month"].isin(selected_months) 
+        & df["country"].isin(active_countries)
+        & df["source"].isin(active_sources)
+    )
     df_filt = df[mask].copy()
 
     # ═══════════════════════════════════════════════════════════════════
@@ -191,7 +203,7 @@ def main():
     # SECTION 3 — ICP Breakdown
     # ═══════════════════════════════════════════════════════════════════
     st.markdown("---")
-    st.subheader("🎯 Breakdown by ICP Tier")
+    st.subheader("🎯 Breakdown by Ideal Customer Tier")
 
     icp_stats = (
         df_filt.groupby("icp")
@@ -207,7 +219,7 @@ def main():
     icp_stats["Contacted %"] = (icp_stats["Contacted"] / icp_stats["Companies"] * 100).round(1)
     icp_stats["Avg_Contacts"] = icp_stats["Avg_Contacts"].round(1)
     icp_stats = icp_stats.rename(columns={
-        "icp": "ICP Tier",
+        "icp": "Ideal Customer Tier",
         "With_Contacts": "With Contacts",
         "Avg_Contacts": "Avg Contacts",
     })
@@ -227,7 +239,7 @@ def main():
         bars2 = ax.bar([i + w/2 for i in x], icp_stats["Contacted %"],
                        width=w, label="Contacted %", edgecolor="#444")
         ax.set_xticks(list(x))
-        ax.set_xticklabels(icp_stats["ICP Tier"], rotation=30, ha="right", fontsize=9)
+        ax.set_xticklabels(icp_stats["Ideal Customer Tier"], rotation=30, ha="right", fontsize=9)
         ax.set_ylabel("Percentage")
         ax.set_title("Coverage & Contacted Rate by ICP", fontsize=14, pad=12)
         ax.legend(facecolor="#1c1f26", edgecolor="#444")
