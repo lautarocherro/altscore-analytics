@@ -250,7 +250,7 @@ def main():
     # Daily Contacts by Owner
     # ═══════════════════════════════════════════════════════════════════
     st.markdown("---")
-    st.subheader("📅 Daily Contacts by Owner")
+    st.subheader("📅 Daily Outreach Breakdown")
     
     daily_contacts = (
         df_filt.groupby(["date", "hubspot_owner_name"])["contact_id"]
@@ -258,9 +258,26 @@ def main():
         .reset_index()
         .sort_values(["date", "hubspot_owner_name"], ascending=[False, True])
     )
-    daily_contacts.columns = ["Date", "Owner", "Unique Contacts Reached"]
     
-    st.dataframe(daily_contacts, width="stretch", hide_index=True)
+    col_sum, col_det = st.columns([0.4, 0.6])
+    
+    with col_sum:
+        st.markdown("**Summary: Avg Contacts / Day**")
+        owner_summary = (
+            daily_contacts.groupby("hubspot_owner_name")["contact_id"]
+            .mean()
+            .round(1)
+            .reset_index()
+            .sort_values("contact_id", ascending=False)
+        )
+        owner_summary.columns = ["Owner", "Avg Contacts/Day"]
+        st.dataframe(owner_summary, width="stretch", hide_index=True)
+
+    with col_det:
+        st.markdown("**Detailed Daily Log**")
+        daily_contacts_log = daily_contacts.copy()
+        daily_contacts_log.columns = ["Date", "Owner", "Unique Contacts Reached"]
+        st.dataframe(daily_contacts_log, width="stretch", hide_index=True)
 
     st.markdown(
         "<div style='text-align:center;color:#555;font-size:.8rem;margin-top:2rem;'>"
