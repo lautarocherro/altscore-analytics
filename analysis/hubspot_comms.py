@@ -263,15 +263,28 @@ def main():
     
     with col_sum:
         st.markdown("**Summary: Avg Contacts / Day**")
+        # Global Team Average
+        team_daily = df_filt.groupby("date")["contact_id"].nunique().mean()
+        
+        # Owner Averages
         owner_summary = (
             daily_contacts.groupby("hubspot_owner_name")["contact_id"]
             .mean()
-            .round(1)
             .reset_index()
-            .sort_values("contact_id", ascending=False)
         )
-        owner_summary.columns = ["Owner", "Avg Contacts/Day"]
-        st.dataframe(owner_summary, width="stretch", hide_index=True)
+        
+        # Total Row
+        total_row = pd.DataFrame({
+            "hubspot_owner_name": ["TOTAL"],
+            "contact_id": [team_daily]
+        })
+        
+        summary_with_total = pd.concat([owner_summary, total_row], ignore_index=True)
+        summary_with_total = summary_with_total.sort_values("contact_id", ascending=False)
+        summary_with_total["contact_id"] = summary_with_total["contact_id"].round(1)
+        
+        summary_with_total.columns = ["Owner", "Avg Contacts/Day"]
+        st.dataframe(summary_with_total, width="stretch", hide_index=True)
 
     with col_det:
         st.markdown("**Detailed Daily Log**")
