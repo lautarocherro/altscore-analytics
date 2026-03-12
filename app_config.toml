@@ -7,3 +7,4 @@ stage_funnel      = true
 company_contacts  = true
 budget_metrics    = true
 budget_waterfall  = false
+hubspot_comms     = true
