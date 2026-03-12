@@ -15,14 +15,24 @@ from analysis.shared import get_bq_client
 
 QUERY = """
 SELECT
-    hs_timestamp,
-    hubspot_owner_name,
-    company_id,
-    contact_id,
-    type,
-    hs_call_disposition,
-    hs_email_status
-FROM `modeling-449120.internal_metrics.HUBSPOT_ALL_COMMS_BEFORE_POSRES`
+    comm.hs_timestamp,
+    comm.hubspot_owner_name,
+    comm.company_id,
+    comm.contact_id,
+    comm.type,
+    comm.hs_call_disposition,
+    comm.hs_email_status,
+    comp.is_won AS is_company_won
+FROM `modeling-449120.internal_metrics.HUBSPOT_ALL_COMMS_BEFORE_POSRES` AS comm
+LEFT JOIN `modeling-449120.internal_metrics.HUBSPOT_COMPANIES` AS comp
+    ON comm.company_id = comp.company_id
+WHERE (
+    comm.hs_email_direction = 'EMAIL' 
+    OR comm.call_id IS NOT NULL 
+    OR comm.meeting_id IS NOT NULL 
+    OR comm.wpp_msg_id IS NOT NULL 
+    OR comm.linkedin_msg_id IS NOT NULL
+)
 """
 
 @st.cache_data(show_spinner="Querying BigQuery…", ttl=600)
@@ -33,6 +43,7 @@ def load_data() -> pd.DataFrame:
     df["date"] = df["hs_timestamp"].dt.date
     df["hubspot_owner_name"] = df["hubspot_owner_name"].fillna("Unknown")
     df["type"] = df["type"].fillna("Unknown")
+    df["is_company_won"] = df["is_company_won"].fillna(False)
     return df
 
 def main():
@@ -54,7 +65,7 @@ def main():
     })
 
     st.markdown("## 📧 HubSpot Communications Analysis")
-    st.caption("Daily outreach volume and reach before positive response.")
+    st.caption("Daily outreach volume and reach before positive response (SENT comms only).")
 
     df = load_data()
 
@@ -71,6 +82,9 @@ def main():
     type_options = sorted(df["type"].unique().tolist())
     selected_types = st.sidebar.multiselect("Activity Type", type_options, default=type_options)
 
+    won_options = [True, False]
+    selected_won = st.sidebar.multiselect("Is Company Won?", won_options, default=[False])
+
     # Apply filters
     if len(date_range) == 2:
         start_date, end_date = date_range
@@ -80,6 +94,7 @@ def main():
 
     mask &= df["hubspot_owner_name"].isin(selected_owners)
     mask &= df["type"].isin(selected_types)
+    mask &= df["is_company_won"].isin(selected_won)
     df_filt = df[mask].copy()
 
     # ═══════════════════════════════════════════════════════════════════
@@ -231,9 +246,25 @@ def main():
         st.pyplot(fig4)
         plt.close()
 
+    # ═══════════════════════════════════════════════════════════════════
+    # Daily Contacts by Owner
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("---")
+    st.subheader("📅 Daily Contacts by Owner")
+    
+    daily_contacts = (
+        df_filt.groupby(["date", "hubspot_owner_name"])["contact_id"]
+        .nunique()
+        .reset_index()
+        .sort_values(["date", "hubspot_owner_name"], ascending=[False, True])
+    )
+    daily_contacts.columns = ["Date", "Owner", "Unique Contacts Reached"]
+    
+    st.dataframe(daily_contacts, width="stretch", hide_index=True)
+
     st.markdown(
         "<div style='text-align:center;color:#555;font-size:.8rem;margin-top:2rem;'>"
-        "Data: HUBSPOT_ALL_COMMS_BEFORE_POSRES · BigQuery · AltScore</div>",
+        "Data: HUBSPOT_ALL_COMMS_BEFORE_POSRES & HUBSPOT_COMPANIES · BigQuery · AltScore</div>",
         unsafe_allow_html=True,
     )
 
