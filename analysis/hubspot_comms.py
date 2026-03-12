@@ -122,11 +122,12 @@ def main():
     ax1.set_title("Daily Outreach Trend & Intensity", fontsize=14, pad=12)
     ax1.tick_params(axis='x', rotation=45)
     
-    # Secondary axis: Ratio
+    # Secondary axis: Ratio (Intensity)
     ax2 = ax1.twinx()
-    ax2.plot(daily_stats["date"], daily_stats["Cont/Co"], marker="x", label="Contacts / Company", linewidth=1.5, color="#c44e52", linestyle="--")
-    ax2.set_ylabel("Ratio (Contacts / Company)")
-    ax2.set_ylim(bottom=0)
+    ax2.plot(daily_stats["date"], daily_stats["Cont/Co"], marker="d", label="Intensity (Contacts/Company)", 
+             linewidth=2.5, color="#ff9f4b", linestyle="-") # Solid orange line
+    ax2.set_ylabel("Intensity (Contacts / Company)")
+    ax2.set_ylim(bottom=0.5, top=daily_stats["Cont/Co"].max() * 1.5 if not daily_stats["Cont/Co"].empty else 2) # Adjusting scale for visibility
     
     # Combined legend
     lines1, labels1 = ax1.get_legend_handles_labels()
