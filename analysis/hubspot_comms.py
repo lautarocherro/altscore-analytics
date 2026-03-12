@@ -153,10 +153,20 @@ def main():
     owner_stats["Comms/Company"] = (owner_stats["Activities"] / owner_stats["Companies"]).round(1)
     owner_stats["Contacts/Company"] = (owner_stats["Contacts"] / owner_stats["Companies"]).round(1)
 
-    col_tbl, col_chart = st.columns([1, 1])
-    
+    # Add Total Row
+    total_row = pd.DataFrame({
+        "hubspot_owner_name": ["TOTAL"],
+        "Activities": [total_comms],
+        "Companies": [unique_companies],
+        "Contacts": [unique_contacts],
+        "Comms/Company": [np.round(total_comms / unique_companies, 1) if unique_companies > 0 else 0.0],
+        "Contacts/Company": [np.round(unique_contacts / unique_companies, 1) if unique_companies > 0 else 0.0]
+    })
+    owner_stats_with_total = pd.concat([owner_stats, total_row], ignore_index=True)
+
+    col_tbl, _ = st.columns([1.5, 0.5])
     with col_tbl:
-        st.dataframe(owner_stats.rename(columns={
+        st.dataframe(owner_stats_with_total.rename(columns={
             "hubspot_owner_name": "Owner",
             "Activities": "Total Comms",
             "Companies": "Companies",
