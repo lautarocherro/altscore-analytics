@@ -135,7 +135,8 @@ def main():
         Contacts=("contact_id", "nunique")
     ).reset_index().sort_values("Activities", ascending=False)
     
-    owner_stats["Rate (Comms/Company)"] = (owner_stats["Activities"] / owner_stats["Companies"]).round(1)
+    owner_stats["Comms/Company"] = (owner_stats["Activities"] / owner_stats["Companies"]).round(1)
+    owner_stats["Contacts/Company"] = (owner_stats["Contacts"] / owner_stats["Companies"]).round(1)
 
     col_tbl, col_chart = st.columns([1, 1])
     
@@ -144,10 +145,14 @@ def main():
             "hubspot_owner_name": "Owner",
             "Activities": "Total Comms",
             "Companies": "Companies",
-            "Contacts": "Contacts"
+            "Contacts": "Contacts",
+            "Comms/Company": "Comms/Co",
+            "Contacts/Company": "Cont/Co"
         }), width="stretch", hide_index=True)
 
-    with col_chart:
+    col_chart1, col_chart2 = st.columns(2)
+    
+    with col_chart1:
         fig2, ax2 = plt.subplots(figsize=(7, 5))
         sns.barplot(data=owner_stats, y="hubspot_owner_name", x="Activities", ax=ax2, palette="viridis", edgecolor="#444")
         ax2.set_title("Activities by Owner", fontsize=14, pad=12)
@@ -155,6 +160,16 @@ def main():
         ax2.set_ylabel("")
         plt.tight_layout()
         st.pyplot(fig2)
+        plt.close()
+
+    with col_chart2:
+        fig_r, ax_r = plt.subplots(figsize=(7, 5))
+        sns.barplot(data=owner_stats, y="hubspot_owner_name", x="Contacts/Company", ax=ax_r, palette="magma", edgecolor="#444")
+        ax_r.set_title("Contacts per Company Reached", fontsize=14, pad=12)
+        ax_r.set_xlabel("Ratio (Contacts / Company)")
+        ax_r.set_ylabel("")
+        plt.tight_layout()
+        st.pyplot(fig_r)
         plt.close()
 
     # ═══════════════════════════════════════════════════════════════════
