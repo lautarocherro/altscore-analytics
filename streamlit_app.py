@@ -34,6 +34,8 @@ def get_pages():
         pages["Dashboards"].append(st.Page("pages/4_📈_Budget_Metrics.py", title="Budget Metrics - Playground", icon="📈"))
     if is_page_enabled("budget_waterfall"):
         pages["Dashboards"].append(st.Page("pages/5_🌊_Budget_Waterfall.py", title="Budget Waterfall", icon="🌊"))
+    if is_page_enabled("hubspot_comms"):
+        pages["Dashboards"].append(st.Page("pages/6_📧_HubSpot_Comms.py", title="HubSpot Comms", icon="📧"))
         
     return pages
 

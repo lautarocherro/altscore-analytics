@@ -23,6 +23,9 @@ if is_page_enabled("budget_metrics"):
 if is_page_enabled("budget_waterfall"):
     enabled.append(("🌊", "Budget Waterfall", "Funnel dropping & matrix time progressions",
                      "pages/5_🌊_Budget_Waterfall.py"))
+if is_page_enabled("hubspot_comms"):
+    enabled.append(("📧", "HubSpot Comms", "Daily outreach volume and reach by owner.",
+                     "pages/6_📧_HubSpot_Comms.py"))
 
 if not enabled:
     st.info("No pages are currently enabled. Update `app_config.toml` to activate pages.")
