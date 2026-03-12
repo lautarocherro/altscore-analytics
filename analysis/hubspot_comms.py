@@ -110,15 +110,29 @@ def main():
         Companies=("company_id", "nunique"),
         Contacts=("contact_id", "nunique")
     ).reset_index()
+    daily_stats["Cont/Co"] = (daily_stats["Contacts"] / daily_stats["Companies"]).fillna(0)
 
-    fig, ax = plt.subplots(figsize=(12, 5))
-    ax.plot(daily_stats["date"], daily_stats["Companies"], marker="o", label="Unique Companies", linewidth=2, color="#4c72b0")
-    ax.plot(daily_stats["date"], daily_stats["Contacts"], marker="s", label="Unique Contacts", linewidth=2, color="#55a868")
-    ax.set_title("Companies & Contacts Contacted Daily", fontsize=14, pad=12)
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Count")
-    ax.legend(facecolor="#1c1f26", edgecolor="#444")
-    plt.xticks(rotation=45)
+    fig, ax1 = plt.subplots(figsize=(12, 5))
+    
+    # Primary axis: Absolute counts
+    ax1.plot(daily_stats["date"], daily_stats["Companies"], marker="o", label="Unique Companies", linewidth=2, color="#4c72b0")
+    ax1.plot(daily_stats["date"], daily_stats["Contacts"], marker="s", label="Unique Contacts", linewidth=2, color="#55a868")
+    ax1.set_xlabel("Date")
+    ax1.set_ylabel("Count (Companies/Contacts)")
+    ax1.set_title("Daily Outreach Trend & Intensity", fontsize=14, pad=12)
+    ax1.tick_params(axis='x', rotation=45)
+    
+    # Secondary axis: Ratio
+    ax2 = ax1.twinx()
+    ax2.plot(daily_stats["date"], daily_stats["Cont/Co"], marker="x", label="Contacts / Company", linewidth=1.5, color="#c44e52", linestyle="--")
+    ax2.set_ylabel("Ratio (Contacts / Company)")
+    ax2.set_ylim(bottom=0)
+    
+    # Combined legend
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, facecolor="#1c1f26", edgecolor="#444", loc="upper left")
+    
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
